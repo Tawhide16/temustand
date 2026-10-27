@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>টেম্পু স্ট্যান্ড - ব্যঙ্গাত্মক ব্রাউজার গেম</title>
+  <meta name="description" content="রাস্তা একটাই, ভাগ্য দুই রকম। ব্যঙ্গাত্মক বাংলা আর্কেড ও সিমুলেশন ব্রাউজার গেম।">
+  <meta name="theme-color" content="#F5A623">
+  
+  <!-- Favicon & PWA -->
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./favicon.svg">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="টেম্পু স্ট্যান্ড - ব্যঙ্গাত্মক ব্রাউজার গেম">
+  <meta property="og:description" content="রাস্তা একটাই, ভাগ্য দুই রকম। চাঁদাবাজ ও ট্রাক ড্রাইভারের বিপরীত বাস্তবতা!">
+  <meta property="og:type" content="website">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Main Game Frame (Mobile-First Shell) -->
+  <main id="app">
+    
+    <!-- Top Bar Navigation -->
+    <header class="top-nav">
+      <div class="brand-badge">
+        <span class="logo-icon">🛺</span>
+        <span>টেম্পু স্ট্যান্ড</span>
+      </div>
+
+      <div class="nav-actions">
+        <button id="btn-mute-toggle" class="icon-btn" aria-label="সাউন্ড অন/অফ">
+          🔊
+        </button>
+        <button id="btn-home-toggle" class="icon-btn" aria-label="প্রধান মেনু">
+          🏠
+        </button>
+      </div>
+    </header>
+
+    <!-- Scene Viewport Root -->
+    <section id="scene-root" class="scene-container">
+      <!-- Dynamic scenes injected here -->
+    </section>
+
+  </main>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

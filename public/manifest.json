@@ -1,0 +1,17 @@
+{
+  "name": "টেম্পু স্ট্যান্ড - ব্যঙ্গাত্মক ব্রাউজার গেম",
+  "short_name": "টেম্পু স্ট্যান্ড",
+  "description": "রাস্তা একটাই, ভাগ্য দুই রকম। ব্যঙ্গাত্মক বাংলা আর্কেড গেম।",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1A110B",
+  "theme_color": "#F5A623",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
