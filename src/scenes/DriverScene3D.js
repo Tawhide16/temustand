@@ -15,7 +15,11 @@ import {
   buildFinishLine3D,
   buildBananaTree3D,
   buildPalmTree3D,
-  buildChadabajStoppage3D
+  buildChadabajStoppage3D,
+  buildCNG3D,
+  buildBus3D,
+  buildTruck3D,
+  buildCow3D
 } from '../systems/models3d.js';
 import {
   createVillageAsphaltRoadTexture,
@@ -26,11 +30,11 @@ import {
 // 🌾 BANGLADESHI VILLAGE ROUTE CHECKPOINTS
 // =========================================================================
 export const VILLAGE_CHECKPOINTS = [
-  { id: 1, name: '১ নং গ্রামীণ মোড় ও চাঁদা চেকপোস্ট', targetDist: 4.0 },
+  { id: 1, name: '১ নং গ্রামীণ মোড় ও ধানক্ষেত', targetDist: 4.0 },
   { id: 2, name: 'শান্ত পুকুর ও খালের ব্রিজ', targetDist: 3.0 },
-  { id: 3, name: '২ নং বাজার সমিতি চাঁদা চেকপোস্ট', targetDist: 2.0 },
-  { id: 4, name: 'গ্রামের হাট ও চায়ের টং দোকান', targetDist: 1.0 },
-  { id: 5, name: 'ছায়াঘেরা গ্রাম্য পথ ও বিজয় ফটক', targetDist: 0.0 }
+  { id: 3, name: 'বাজার সমিতি ও টং দোকান', targetDist: 2.0 },
+  { id: 4, name: 'ছায়াঘেরা গ্রাম্য বসতি', targetDist: 1.0 },
+  { id: 5, name: 'কাওরান বাজার বিজয় ফটক', targetDist: 0.0 }
 ];
 
 export class DriverScene3D {
@@ -67,14 +71,17 @@ export class DriverScene3D {
     this.isTimerRunning = false;
     this.isPaused = false;
 
+    // Dynamic S-Curve Road Curvature (Left & Right turning country road!)
+    this.distanceTravelled = 0;
+
     // Vehicle Driving Physics
     this.speed = 0; // KM/H
     this.cruiseSpeed = 48; // Max normal speed for tempo
     this.boostSpeed = 70; // Turbo boost
     this.reverseSpeed = -16;
-    this.truckX = 0; // Lateral position (-4.2m to +4.2m)
+    this.truckX = 0; // Lateral position (-4.2m to +4.2m relative to road center)
     this.steerAngle = 0; // Smoothed steering angle (-1 to 1)
-    this.roadHalfWidth = 4.3;
+    this.roadHalfWidth = 4.4;
 
     // Continuous 4-way Control State
     this.keyState = {
@@ -96,15 +103,26 @@ export class DriverScene3D {
     this.finishLineArch = null;
     this.canalBridge = null;
 
-    // Chadabaj Stoppages System
-    this.chadabajStoppages = [];
-    this.activeStoppageEncounter = null;
+    // Traffic & Roadside Transport Vehicles
+    this.trafficVehicles = [];
+    this.roadsideParkedProps = [];
+
+    // Timed Chadabaj Stoppage (40s, 70s / ~1m, 130s / ~2m, etc.)
+    this.stoppageTimes = [40, 70, 130, 200];
+    this.stoppageIndex = 0;
+    this.chadabajStoppage = null;
     this.isEncounterModalActive = false;
+    this.isStoppageSpawnedAhead = false;
 
     // Bindings
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleKeyUp = this.handleKeyUp.bind(this);
     this.handleResize = this.handleResize.bind(this);
+  }
+
+  // Returns dynamic X curvature of the road at distance Z
+  getRoadCurveAt(z) {
+    return Math.sin((z - this.distanceTravelled) * 0.009) * 4.6;
   }
 
   render(container) {
@@ -190,20 +208,15 @@ export class DriverScene3D {
                     <stop offset="100%" stop-color="#374151" />
                   </linearGradient>
                 </defs>
-                <!-- Outer Grip Rim -->
                 <circle cx="100" cy="100" r="90" fill="none" stroke="url(#rimGrad)" stroke-width="18" />
                 <circle cx="100" cy="100" r="98" fill="none" stroke="#111827" stroke-width="2" />
                 <circle cx="100" cy="100" r="82" fill="none" stroke="#374151" stroke-width="1.5" />
-                <!-- Grip Ribs -->
                 <path d="M 18,92 Q 10,100 18,108" fill="none" stroke="#4B5563" stroke-width="3" />
                 <path d="M 182,92 Q 190,100 182,108" fill="none" stroke="#4B5563" stroke-width="3" />
-                <!-- Top Center Yellow Alignment Stripe -->
                 <rect x="96" y="8" width="8" height="18" rx="2" fill="#F5A623" />
-                <!-- Spokes -->
                 <path d="M 40,100 L 75,96 L 75,104 Z" fill="url(#spokeGrad)" />
                 <path d="M 160,100 L 125,96 L 125,104 Z" fill="url(#spokeGrad)" />
                 <path d="M 100,165 L 94,125 L 106,125 Z" fill="url(#spokeGrad)" />
-                <!-- Center Hub -->
                 <circle cx="100" cy="100" r="32" fill="url(#hubGrad)" stroke="#6B7280" stroke-width="2.5" />
                 <circle cx="100" cy="100" r="22" fill="#111827" stroke="#4B5563" stroke-width="1.5" />
                 <text x="100" y="107" font-size="20" text-anchor="middle" fill="#FFD700">🛺</text>
@@ -359,14 +372,14 @@ export class DriverScene3D {
 
     // 1. Scene & Atmosphere (Sunny rural Bangladeshi daytime)
     this.scene = new THREE.Scene();
-    const skyColor = new THREE.Color('#78B9ED'); // Crisp blue sunny sky
+    const skyColor = new THREE.Color('#78B9ED');
     this.scene.background = skyColor;
     this.scene.fog = new THREE.FogExp2('#A7D3F5', 0.0035);
 
-    // 2. Camera: Professional Elevated Third-Person View (Clear view over roof looking down road)
+    // 2. Camera: Elevated Third-Person View (Clear overview over tempo roof)
     const initialCam = this.cameraModes[this.currentCamIndex];
     this.camera = new THREE.PerspectiveCamera(54, width / height, 0.1, 550);
-    this.camera.position.set(initialCam.pos?.[0] || 0, initialCam.y, initialCam.z);
+    this.camera.position.set(0, initialCam.y, initialCam.z);
     this.camera.lookAt(0, initialCam.lookY, initialCam.lookZ);
 
     // 3. WebGL Renderer
@@ -377,7 +390,7 @@ export class DriverScene3D {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(this.renderer.domElement);
 
-    // 4. Lighting: Warm Sunlight & Atmospheric Ambient
+    // 4. Lighting
     const hemiLight = new THREE.HemisphereLight('#E3F2FD', '#33691E', 0.85);
     this.scene.add(hemiLight);
 
@@ -394,7 +407,7 @@ export class DriverScene3D {
     sunLight.shadow.camera.bottom = -30;
     this.scene.add(sunLight);
 
-    // 5. Expansive Ground Terrain (Lush Rice Paddy Field)
+    // 5. Ground Terrain
     const groundGeo = new THREE.PlaneGeometry(360, 640);
     const paddyTex = createRicePaddyTexture();
     paddyTex.repeat.set(16, 28);
@@ -417,8 +430,8 @@ export class DriverScene3D {
       metalness: 0.15
     });
 
-    const segmentCount = 5;
-    const segmentLength = 120;
+    const segmentCount = 6;
+    const segmentLength = 100;
     for (let i = 0; i < segmentCount; i++) {
       const roadGeo = new THREE.PlaneGeometry(11.0, segmentLength);
       const roadMesh = new THREE.Mesh(roadGeo, roadMat);
@@ -432,11 +445,12 @@ export class DriverScene3D {
     // 7. Player Bangladeshi Tempo / E-Rickshaw
     this.truck = buildTempoRickshaw3D(truckColor);
     this.truck.position.set(0, 0, 0);
-    this.truck.rotation.y = Math.PI; // Orient forward along negative Z
+    this.truck.rotation.y = Math.PI;
     this.scene.add(this.truck);
 
-    // 8. World Scenery: Rural Bangladesh Environment & Chadabaj Stoppages
+    // 8. World Scenery, Traffic & Timed Chadabaj Stoppage
     this.initVillageEnvironment();
+    this.initTrafficSystem();
   }
 
   initVillageEnvironment() {
@@ -444,15 +458,17 @@ export class DriverScene3D {
     for (let z = 20; z > -500; z -= 24) {
       const fence = buildBambooFence3D(24);
       fence.position.set(-5.9, 0, z);
+      fence.userData = { baseX: -5.9 };
       this.scene.add(fence);
       this.bambooFences.push(fence);
     }
 
-    // 2. Concrete Electric Utility Poles along Right Roadside with Overhead Wires
+    // 2. Concrete Electric Poles along Right Roadside
     const wireDistance = 48;
     for (let z = 20; z > -520; z -= wireDistance) {
       const pole = buildElectricPoleWithWires3D(wireDistance);
       pole.position.set(6.8, 0, z);
+      pole.userData = { baseX: 6.8 };
       this.scene.add(pole);
       this.electricPoles.push(pole);
     }
@@ -460,20 +476,24 @@ export class DriverScene3D {
     // 3. Village Pond on the Left Side
     this.villagePond = buildVillagePondSide3D(38, 75);
     this.villagePond.position.set(-28, 0, -110);
+    this.villagePond.userData = { baseX: -28 };
     this.scene.add(this.villagePond);
     this.scrollingDecorations.push(this.villagePond);
 
-    // 4. Village Roadside Tea Stall on the Right Side
+    // 4. Roadside Tea Stall on the Right Side
     this.teaStall = buildVillageTeaStallEnhanced3D();
     this.teaStall.position.set(11.2, 0, -85);
+    this.teaStall.userData = { baseX: 11.2 };
     this.scene.add(this.teaStall);
     this.scrollingDecorations.push(this.teaStall);
 
-    // 5. Village Tin Houses along the Right Edge
+    // 5. Village Tin Houses
     const houseDistances = [-140, -260, -420];
     houseDistances.forEach((z, idx) => {
       const house = buildVillageTinHouse3D();
-      house.position.set(16 + (idx % 2) * 3, 0, z);
+      const bx = 16 + (idx % 2) * 3;
+      house.position.set(bx, 0, z);
+      house.userData = { baseX: bx };
       this.scene.add(house);
       this.scrollingDecorations.push(house);
     });
@@ -481,25 +501,27 @@ export class DriverScene3D {
     // 6. Canal Culvert Bridge across Road
     this.canalBridge = buildCanalBridgeSegment3D(11.2, 22);
     this.canalBridge.position.set(0, 0, -290);
+    this.canalBridge.userData = { baseX: 0 };
     this.scene.add(this.canalBridge);
     this.scrollingDecorations.push(this.canalBridge);
 
     // 7. Directional Chevron Arrows (>>>) Hovering ahead
     this.directionalChevrons = buildDirectionalChevrons3D();
     this.directionalChevrons.position.set(0, 1.8, -48);
+    this.directionalChevrons.userData = { baseX: 0 };
     this.scene.add(this.directionalChevrons);
 
-    // 8. 🛑 AUTHENTIC CHADABAJ STOPPAGE (চাঁদাবাজ চেকপোস্ট) ACROSS THE ROAD!
-    // Shows once in the first part (at Z = -65m), then reappears after completing a FULL 600m round!
-    const stoppage = buildChadabajStoppage3D(11.0, '১ নং টেম্পু স্ট্যান্ড চাঁদা চেকপোস্ট');
-    stoppage.position.set(0, 0, -65);
-    stoppage.userData.tollFee = 50;
-    this.scene.add(stoppage);
-    this.chadabajStoppages = [stoppage];
+    // 8. Timed Chadabaj Stoppage (Starts hidden, appears at 40s -> 1m -> 2m!)
+    this.chadabajStoppage = buildChadabajStoppage3D(11.0, '১ নং টেম্পু স্ট্যান্ড চাঁদা চেকপোস্ট');
+    this.chadabajStoppage.position.set(0, 0, -400); // Placed far until triggered
+    this.chadabajStoppage.userData.baseX = 0;
+    this.chadabajStoppage.userData.tollFee = 50;
+    this.scene.add(this.chadabajStoppage);
 
-    // 9. Celebratory Finish Line Arch Gantry at Gated Destination
+    // 9. Celebratory Finish Line Arch Gantry
     this.finishLineArch = buildFinishLine3D(11.2);
     this.finishLineArch.position.set(0, 0, -560);
+    this.finishLineArch.userData = { baseX: 0 };
     this.scene.add(this.finishLineArch);
     this.scrollingDecorations.push(this.finishLineArch);
 
@@ -507,6 +529,72 @@ export class DriverScene3D {
     for (let z = 10; z > -500; z -= 14) {
       this.spawnVegetationProp(z);
     }
+  }
+
+  // Traffic & Roadside Transport Vehicles (আশেপাশে গাড়ি ঘোড়া ও সিএনজি)
+  initTrafficSystem() {
+    // 1. Moving Oncoming Traffic (Green CNG Auto-Rickshaw in left lane)
+    const oncomingCNG = buildCNG3D();
+    oncomingCNG.position.set(-2.2, 0, -90);
+    oncomingCNG.rotation.y = 0; // Faces towards player
+    oncomingCNG.userData = {
+      type: 'traffic',
+      laneX: -2.2,
+      isOncoming: true,
+      speedRel: 18
+    };
+    this.scene.add(oncomingCNG);
+    this.trafficVehicles.push(oncomingCNG);
+
+    // 2. Forward Moving Traffic (Local Bus / Truck in right lane ahead)
+    const forwardBus = buildBus3D('#1E88E5', 'গ্রামবাংলা এক্সপ্রেস');
+    forwardBus.position.set(2.0, 0, -150);
+    forwardBus.rotation.y = Math.PI; // Moves same direction as player
+    forwardBus.userData = {
+      type: 'traffic',
+      laneX: 2.0,
+      isOncoming: false,
+      speedRel: -10
+    };
+    this.scene.add(forwardBus);
+    this.trafficVehicles.push(forwardBus);
+
+    // 3. Second Oncoming CNG
+    const cng2 = buildCNG3D();
+    cng2.position.set(-2.2, 0, -260);
+    cng2.rotation.y = 0;
+    cng2.userData = {
+      type: 'traffic',
+      laneX: -2.2,
+      isOncoming: true,
+      speedRel: 20
+    };
+    this.scene.add(cng2);
+    this.trafficVehicles.push(cng2);
+
+    // 4. Parked Roadside Vehicles & Grazing Cow (আশেপাশে গাড়ি ও গরু)
+    // Parked CNG outside the tea stall
+    const parkedCNG = buildCNG3D();
+    parkedCNG.position.set(7.6, 0, -88);
+    parkedCNG.rotation.y = Math.PI * 0.85;
+    parkedCNG.userData = { baseX: 7.6 };
+    this.scene.add(parkedCNG);
+    this.roadsideParkedProps.push(parkedCNG);
+
+    // Deshi Cow grazing on the green verge by the bamboo fence
+    const cow1 = buildCow3D();
+    cow1.position.set(-7.5, 0, -50);
+    cow1.rotation.y = Math.PI * 0.4;
+    cow1.userData = { baseX: -7.5 };
+    this.scene.add(cow1);
+    this.roadsideParkedProps.push(cow1);
+
+    const cow2 = buildCow3D();
+    cow2.position.set(-8.2, 0, -210);
+    cow2.rotation.y = Math.PI * 0.6;
+    cow2.userData = { baseX: -8.2 };
+    this.scene.add(cow2);
+    this.roadsideParkedProps.push(cow2);
   }
 
   spawnVegetationProp(z) {
@@ -524,6 +612,7 @@ export class DriverScene3D {
     }
 
     tree.position.set(x, 0, z);
+    tree.userData = { baseX: x };
     this.scene.add(tree);
     this.roadsideProps.push(tree);
   }
@@ -671,15 +760,15 @@ export class DriverScene3D {
     if (payBtn) {
       payBtn.addEventListener('click', () => {
         sound.playCoin();
-        const fee = this.activeStoppageEncounter?.userData?.tollFee || 50;
+        const fee = this.chadabajStoppage?.userData?.tollFee || 50;
         this.totalBribePaid += fee;
         this.isEncounterModalActive = false;
 
         // Open the barrier door immediately!
-        if (this.activeStoppageEncounter) {
-          this.activeStoppageEncounter.userData.isOpen = true;
-          if (this.activeStoppageEncounter.userData.boomPivot) {
-            this.activeStoppageEncounter.userData.boomPivot.rotation.z = Math.PI * 0.48;
+        if (this.chadabajStoppage) {
+          this.chadabajStoppage.userData.isOpen = true;
+          if (this.chadabajStoppage.userData.boomPivot) {
+            this.chadabajStoppage.userData.boomPivot.rotation.z = Math.PI * 0.48;
           }
         }
 
@@ -691,16 +780,15 @@ export class DriverScene3D {
         toast.style.left = '50%';
         toast.style.top = '28%';
         toast.style.fontSize = '1.3rem';
-        toast.textContent = `✅ ৳${fee} চাঁদা পরিশোধিত! গেট খুলে গেছে!`;
+        toast.textContent = `✅ ৳${fee} চাঁদা পরিশোধিত! গেট উন্মুক্ত!`;
         this.container.appendChild(toast);
         setTimeout(() => toast.remove(), 1600);
 
         // Resume motion smoothly through open door
         this.speed = 28;
         this.keyState.forward = true;
-        setTimeout(() => {
-          this.activeStoppageEncounter = null;
-        }, 2500);
+        this.stoppageIndex++;
+        this.isStoppageSpawnedAhead = false;
       });
     }
 
@@ -719,10 +807,10 @@ export class DriverScene3D {
         this.isEncounterModalActive = false;
 
         // Break open the barrier immediately!
-        if (this.activeStoppageEncounter) {
-          this.activeStoppageEncounter.userData.isOpen = true;
-          if (this.activeStoppageEncounter.userData.boomPivot) {
-            this.activeStoppageEncounter.userData.boomPivot.rotation.z = Math.PI * 0.58;
+        if (this.chadabajStoppage) {
+          this.chadabajStoppage.userData.isOpen = true;
+          if (this.chadabajStoppage.userData.boomPivot) {
+            this.chadabajStoppage.userData.boomPivot.rotation.z = Math.PI * 0.58;
           }
         }
 
@@ -742,9 +830,8 @@ export class DriverScene3D {
         // Burst forward at turbo speed!
         this.speed = 65;
         this.keyState.forward = true;
-        setTimeout(() => {
-          this.activeStoppageEncounter = null;
-        }, 2500);
+        this.stoppageIndex++;
+        this.isStoppageSpawnedAhead = false;
       });
     }
   }
@@ -756,7 +843,6 @@ export class DriverScene3D {
       return;
     }
 
-    // Camera Switch (Key 'C')
     if (e.key === 'c' || e.key === 'C') {
       this.toggleCameraAngle();
       return;
@@ -778,12 +864,12 @@ export class DriverScene3D {
       const brakePedal = this.container.querySelector('#btn-pedal-brake');
       if (brakePedal) brakePedal.classList.add('active');
     }
-    // Steer Left (A, ArrowLeft)
+    // Steer Left (A, ArrowLeft) - Smooth left turn!
     else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
       e.preventDefault();
       this.keyState.left = true;
     }
-    // Steer Right (D, ArrowRight)
+    // Steer Right (D, ArrowRight) - Smooth right turn!
     else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
       e.preventDefault();
       this.keyState.right = true;
@@ -847,7 +933,7 @@ export class DriverScene3D {
     let targetSpeed = 0;
 
     if (this.isEncounterModalActive) {
-      targetSpeed = 0; // Forced stop during extortion dialog
+      targetSpeed = 0; // Locked stop at barrier
     } else if (this.keyState.forward) {
       this.isTimerRunning = true;
       targetSpeed = this.keyState.boost ? this.boostSpeed : this.cruiseSpeed;
@@ -855,11 +941,11 @@ export class DriverScene3D {
       this.isTimerRunning = true;
       targetSpeed = this.reverseSpeed;
     } else {
-      targetSpeed = 0; // Decelerate to stop
+      targetSpeed = 0;
     }
 
-    // Road Shoulder Boundary Detection: Off-road reduces maximum speed
-    const isOffRoad = Math.abs(this.truckX) > 3.6;
+    // Road Shoulder Boundary Detection
+    const isOffRoad = Math.abs(this.truckX) > 3.8;
     const offRoadWarn = this.container.querySelector('#sim-offroad-warn');
     if (isOffRoad) {
       if (offRoadWarn) offRoadWarn.style.display = 'block';
@@ -883,7 +969,10 @@ export class DriverScene3D {
       this.maxSpeedReached = Math.round(this.speed);
     }
 
-    // 2. Stopwatch Timer Tick (Starts on first acceleration)
+    const worldSpeed = (this.speed * 0.42) * dt * 10;
+    this.distanceTravelled += worldSpeed;
+
+    // 2. Stopwatch Timer Tick
     if (this.isTimerRunning && !this.delivered && !this.isEncounterModalActive) {
       this.elapsedSeconds += dt;
       const mins = Math.floor(this.elapsedSeconds / 60);
@@ -909,47 +998,54 @@ export class DriverScene3D {
     const targetOffset = 292 - (speedRatio * 219);
     if (arcEl) arcEl.setAttribute('stroke-dashoffset', targetOffset);
 
-    // 4. Smooth Steering Mechanics
+    // 4. Smooth Left & Right Steering Turns (left and right side e jao turne kora jay)
     let steerTarget = 0;
     if (this.keyState.left) steerTarget = -1;
     if (this.keyState.right) steerTarget = 1;
 
-    this.steerAngle += (steerTarget - this.steerAngle) * 9.5 * dt;
+    // Smooth response to steer inputs
+    this.steerAngle += (steerTarget - this.steerAngle) * 9.0 * dt;
 
+    // Rotate Steering Wheel Overlay in Bottom-Left
     const wheelContainer = this.container.querySelector('#sim-steering-wheel');
     if (wheelContainer) {
-      wheelContainer.style.transform = `rotate(${this.steerAngle * 54}deg)`;
+      wheelContainer.style.transform = `rotate(${this.steerAngle * 65}deg)`;
     }
 
-    // Lateral displacement
-    const lateralSpeed = this.steerAngle * (Math.abs(this.speed) / 45) * 6.8 * dt;
+    // Move Vehicle laterally across lanes
+    const lateralSpeed = this.steerAngle * (Math.abs(this.speed) / 45) * 7.5 * dt;
     this.truckX = Math.max(-this.roadHalfWidth, Math.min(this.roadHalfWidth, this.truckX + lateralSpeed));
 
-    // Chassis visual roll & yaw
-    const dx = this.truckX - this.truck.position.x;
-    this.truck.position.x += dx * 0.22;
-    this.truck.rotation.z = -this.steerAngle * 0.08; // Lean into turn
-    this.truck.rotation.y = Math.PI - this.steerAngle * 0.12; // Yaw
+    // Calculate dynamic road center curve at vehicle position (z = 0)
+    const roadCurveAtOrigin = this.getRoadCurveAt(0);
+
+    // Vehicle actual world position: aligns to road curve + lane offset
+    this.truck.position.x = roadCurveAtOrigin + this.truckX;
+    this.truck.rotation.z = -this.steerAngle * 0.12; // Body roll into turn
+    this.truck.rotation.y = Math.PI - this.steerAngle * 0.32; // Yaw turning angle
 
     if (this.truck.userData.frontSteerGroup) {
-      this.truck.userData.frontSteerGroup.rotation.y = -this.steerAngle * 0.45;
+      this.truck.userData.frontSteerGroup.rotation.y = -this.steerAngle * 0.6;
     }
 
     // Spin wheels
-    const worldSpeed = (this.speed * 0.42) * dt * 10;
     if (this.truck.userData.wheels) {
       this.truck.userData.wheels.forEach(w => {
         w.rotation.x += worldSpeed * 0.55;
       });
     }
 
-    // 5. CAMERA FOLLOWING (Smooth transition according to active camera angle)
+    // 5. Camera Follow with Dynamic Turning Perspective
     const currentCamConfig = this.cameraModes[this.currentCamIndex];
-    const targetCamX = this.truck.position.x * 0.42;
+    const targetCamX = this.truck.position.x * 0.45;
     this.camera.position.x += (targetCamX - this.camera.position.x) * 0.15;
     this.camera.position.y += (currentCamConfig.y - this.camera.position.y) * 0.1;
     this.camera.position.z += (currentCamConfig.z - this.camera.position.z) * 0.1;
-    this.camera.lookAt(this.truck.position.x * 0.52, currentCamConfig.lookY, currentCamConfig.lookZ);
+    this.camera.lookAt(
+      this.truck.position.x * 0.55 + this.getRoadCurveAt(-16) * 0.4,
+      currentCamConfig.lookY,
+      currentCamConfig.lookZ
+    );
 
     // 6. Trip Distance & Checkpoints
     if (this.speed > 0) {
@@ -964,7 +1060,7 @@ export class DriverScene3D {
       this.triggerCheckpointPassed(this.currentCheckpointIndex);
     }
 
-    // 7. World Scrolling: Road Segments
+    // 7. Dynamic Curving Road Segments (S-Curve Road Left & Right)
     this.roadSegments.forEach(seg => {
       seg.position.z += worldSpeed;
       if (seg.position.z > 60) {
@@ -972,86 +1068,43 @@ export class DriverScene3D {
       } else if (seg.position.z < -540) {
         seg.position.z += 600;
       }
+      // Apply curve to segment
+      seg.position.x = this.getRoadCurveAt(seg.position.z);
     });
 
-    // 8. World Scrolling: Fences, Electric Poles & Scenery
+    // 8. Scrolling Roadside Props with Road Curvature
     this.bambooFences.forEach(fence => {
       fence.position.z += worldSpeed;
       if (fence.position.z > 50) fence.position.z -= 520;
+      fence.position.x = fence.userData.baseX + this.getRoadCurveAt(fence.position.z);
     });
 
     this.electricPoles.forEach(pole => {
       pole.position.z += worldSpeed;
       if (pole.position.z > 50) pole.position.z -= 540;
+      pole.position.x = pole.userData.baseX + this.getRoadCurveAt(pole.position.z);
     });
 
     this.scrollingDecorations.forEach(deco => {
       deco.position.z += worldSpeed;
       if (deco.position.z > 60) deco.position.z -= 600;
+      deco.position.x = (deco.userData.baseX || 0) + this.getRoadCurveAt(deco.position.z);
     });
 
-    // 9. CHADABAJ STOPPAGE (চাঁদাবাজ চেকপোস্ট) DETECTION & INTERACTION
-    let nearAnyStoppage = false;
-    let stoppageDistMeters = 0;
-
-    this.chadabajStoppages.forEach(stoppage => {
-      // If modal is active for this stoppage, clamp it right at z = -6.0m directly in front of the vehicle!
-      if (this.isEncounterModalActive && this.activeStoppageEncounter === stoppage) {
-        stoppage.position.z = -6.0;
-        this.speed = 0;
-        return;
-      }
-
-      stoppage.position.z += worldSpeed;
-
-      // Animate warning light blink
-      if (stoppage.userData.redLight) {
-        stoppage.userData.redLight.visible = Math.floor(performance.now() * 0.005) % 2 === 0;
-      }
-
-      // Animate boom arm opening upwards if cleared / paid / broken
-      if (stoppage.userData.isOpen && stoppage.userData.boomPivot) {
-        stoppage.userData.boomPivot.rotation.z += (Math.PI * 0.48 - stoppage.userData.boomPivot.rotation.z) * 0.15;
-      }
-
-      // Detection zone: Approaching stoppage
-      const distToStoppage = stoppage.position.z; // negative value ahead, 0 is right at the tempo
-      if (distToStoppage > -45 && distToStoppage < 5 && !stoppage.userData.isOpen) {
-        nearAnyStoppage = true;
-        stoppageDistMeters = Math.max(1, Math.round(Math.abs(distToStoppage)));
-
-        // Arrive at the barrier!
-        if (distToStoppage >= -7.5 && distToStoppage <= 2.5 && !this.isEncounterModalActive) {
-          stoppage.position.z = -6.0;
-          this.triggerChadabajEncounter(stoppage);
-        }
-      }
-
-      // Reset stoppage after a FULL 600m round through the village route!
-      if (stoppage.position.z > 60) {
-        stoppage.position.z -= 600; // Complete full round before reappearing
-        stoppage.userData.isOpen = false;
-        if (stoppage.userData.boomPivot) stoppage.userData.boomPivot.rotation.z = 0;
-      }
+    // Roadside parked vehicles and cows
+    this.roadsideParkedProps.forEach(prop => {
+      prop.position.z += worldSpeed;
+      if (prop.position.z > 50) prop.position.z -= 520;
+      prop.position.x = prop.userData.baseX + this.getRoadCurveAt(prop.position.z);
     });
 
-    // Toggle approaching warning
-    const warnEl = this.container.querySelector('#sim-stoppage-warn');
-    if (warnEl) {
-      if (nearAnyStoppage && !this.isEncounterModalActive) {
-        warnEl.textContent = `🛑 সামনে চাঁদা চেকপোস্ট (${toBengaliNumber(stoppageDistMeters)} মি.)! গতি কমান!`;
-        warnEl.style.display = 'block';
-      } else {
-        warnEl.style.display = 'none';
-      }
-    }
-
-    // Animate Hovering Chevron Arrows
+    // Animate Directional Chevron Arrows
     if (this.directionalChevrons) {
       this.directionalChevrons.position.z += worldSpeed;
       if (this.directionalChevrons.position.z > 25) {
         this.directionalChevrons.position.z = -220;
       }
+      this.directionalChevrons.position.x = this.getRoadCurveAt(this.directionalChevrons.position.z);
       this.directionalChevrons.position.y = 1.8 + Math.sin(performance.now() * 0.005) * 0.15;
     }
 
@@ -1063,10 +1116,104 @@ export class DriverScene3D {
         this.scene.remove(prop);
         this.roadsideProps.splice(i, 1);
         this.spawnVegetationProp(-480);
+      } else {
+        prop.position.x = prop.userData.baseX + this.getRoadCurveAt(prop.position.z);
       }
     }
 
-    // 10. Finish Line Detection
+    // 9. Moving Traffic System (আশেপাশে গাড়ি ঘোড়া ও সিএনজি)
+    this.trafficVehicles.forEach(veh => {
+      // Relative motion based on direction
+      if (veh.userData.isOncoming) {
+        veh.position.z += worldSpeed + (veh.userData.speedRel * 0.42 * dt * 10);
+      } else {
+        veh.position.z += worldSpeed + (veh.userData.speedRel * 0.42 * dt * 10);
+      }
+
+      // Keep aligned to the curving lane
+      veh.position.x = veh.userData.laneX + this.getRoadCurveAt(veh.position.z);
+
+      // Loop traffic when passing behind or getting too far ahead
+      if (veh.position.z > 40) {
+        veh.position.z = -180 - Math.random() * 90;
+      } else if (veh.position.z < -340) {
+        veh.position.z = -70;
+      }
+
+      // Close proximity overtaking / near-miss horn
+      const distZ = Math.abs(this.truck.position.z - veh.position.z);
+      const distX = Math.abs(this.truck.position.x - veh.position.x);
+      if (distZ < 4.0 && distX < 1.8 && this.speed > 20) {
+        // Slow down slightly on near collision
+        this.speed = Math.max(16, this.speed * 0.94);
+      }
+    });
+
+    // 10. TIMED CHADABAJ STOPPAGE (40s -> 1m -> 2m)
+    // Checks if it's time to spawn the next stoppage ahead!
+    if (this.stoppageIndex < this.stoppageTimes.length) {
+      const targetTime = this.stoppageTimes[this.stoppageIndex];
+      // Spawn stoppage ahead 7 seconds before target wall time
+      if (this.elapsedSeconds >= targetTime - 7 && !this.isStoppageSpawnedAhead) {
+        this.isStoppageSpawnedAhead = true;
+        this.chadabajStoppage.position.z = -55; // 55m ahead
+        this.chadabajStoppage.userData.isOpen = false;
+        if (this.chadabajStoppage.userData.boomPivot) {
+          this.chadabajStoppage.userData.boomPivot.rotation.z = 0;
+        }
+      }
+    }
+
+    // Process Active Stoppage
+    if (this.chadabajStoppage) {
+      if (this.isEncounterModalActive) {
+        this.chadabajStoppage.position.z = -6.0;
+        this.speed = 0;
+      } else {
+        this.chadabajStoppage.position.z += worldSpeed;
+      }
+
+      // Align stoppage with road curve
+      this.chadabajStoppage.position.x = this.getRoadCurveAt(this.chadabajStoppage.position.z);
+
+      // Flashing beacon light
+      if (this.chadabajStoppage.userData.redLight) {
+        this.chadabajStoppage.userData.redLight.visible = Math.floor(performance.now() * 0.005) % 2 === 0;
+      }
+
+      // Animate boom arm opening upwards if cleared / paid / broken
+      if (this.chadabajStoppage.userData.isOpen && this.chadabajStoppage.userData.boomPivot) {
+        this.chadabajStoppage.userData.boomPivot.rotation.z += (Math.PI * 0.48 - this.chadabajStoppage.userData.boomPivot.rotation.z) * 0.15;
+      }
+
+      // Detection zone: Approaching stoppage
+      const distToStoppage = this.chadabajStoppage.position.z;
+      const warnEl = this.container.querySelector('#sim-stoppage-warn');
+
+      if (distToStoppage > -50 && distToStoppage < 5 && !this.chadabajStoppage.userData.isOpen) {
+        const distM = Math.max(1, Math.round(Math.abs(distToStoppage)));
+        if (warnEl && !this.isEncounterModalActive) {
+          warnEl.textContent = `🛑 সামনে চাঁদা চেকপোস্ট (${toBengaliNumber(distM)} মি.)! গতি কমান!`;
+          warnEl.style.display = 'block';
+        }
+
+        // Reached the barrier!
+        if (distToStoppage >= -7.5 && distToStoppage <= 2.5 && !this.isEncounterModalActive) {
+          this.chadabajStoppage.position.z = -6.0;
+          this.triggerChadabajEncounter(this.chadabajStoppage);
+        }
+      } else {
+        if (warnEl) warnEl.style.display = 'none';
+      }
+
+      // Send far away once passed behind
+      if (this.chadabajStoppage.position.z > 60) {
+        this.chadabajStoppage.position.z = -500;
+        this.isStoppageSpawnedAhead = false;
+      }
+    }
+
+    // 11. Finish Line Detection
     if (this.remainingDistanceKm <= 0.05 && !this.delivered) {
       this.reachFinishLine();
     }
@@ -1074,7 +1221,6 @@ export class DriverScene3D {
 
   triggerChadabajEncounter(stoppage) {
     this.isEncounterModalActive = true;
-    this.activeStoppageEncounter = stoppage;
     this.speed = 0;
     this.keyState.forward = false;
     this.keyState.backward = false;
@@ -1151,14 +1297,14 @@ export class DriverScene3D {
       return { x, y };
     };
 
-    // Single Stoppage on Mini-Map at start of round
-    [0.22].forEach(stoppageT => {
+    // Stoppage on Mini-Map
+    [0.25].forEach(stoppageT => {
       const pt = getBezierPoint(stoppageT);
       ctx.fillStyle = '#EF4444';
       ctx.fillRect(pt.x - 3, pt.y - 3, 6, 6);
     });
 
-    // Checkered Flag at end of track
+    // Checkered Flag
     ctx.font = '14px sans-serif';
     ctx.fillText('🏁', w * 0.62, h * 0.12);
 
@@ -1223,17 +1369,16 @@ export class DriverScene3D {
           কাওরান বাজারে সফল আগমন!
         </h2>
         <p style="font-size: 0.98rem; color: #444; line-height: 1.5; margin-bottom: 16px;">
-          চাঁদাবাজদের ব্যারিকেড ও গ্রামীণ পথ সফলভাবে পাড়ি দিয়ে <strong>১,০০০ কেজি তাজা সবজিভর্তি টেম্পো</strong> গন্তব্যে পৌঁছেছে!
+          গ্রামের আঁকাবাঁকা পথ, ট্রাফিক সিএনজি ও চাঁদাবাজ চেকপোস্ট পেরিয়ে <strong>১,০০০ কেজি তাজা সবজিভর্তি টেম্পো</strong> নিরাপদে পৌঁছেছে!
         </p>
 
-        <!-- Race Simulator Stats Box -->
         <div style="background: rgba(63,155,91,0.12); border: 2px solid #3F9B5B; border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; text-align: left;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 7px;">
-            <span>⏱️ মোট সময়:</span>
+            <span>⏱️ মোট ড্রাইভের সময়:</span>
             <strong style="color: #1A110B; font-size: 1.15rem;">${finalTimeStr}</strong>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 7px;">
-            <span>🛑 রাস্তায় মোট চাঁদা দেওয়া হয়েছে:</span>
+            <span>🛑 মোট পরিশোধিত চাঁদা:</span>
             <strong style="color: #C8442B; font-size: 1.15rem;">${formatTaka(this.totalBribePaid)}</strong>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 7px;">
