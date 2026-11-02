@@ -489,20 +489,13 @@ export class DriverScene3D {
     this.directionalChevrons.position.set(0, 1.8, -48);
     this.scene.add(this.directionalChevrons);
 
-    // 8. 🛑 AUTHENTIC CHADABAJ STOPPAGES (চাঁদাবাজ চেকপোস্ট) ACROSS THE ROAD!
-    // Stoppage 1: গ্রামীণ মোড় চাঁদা চেকপোস্ট (Spaced at Z = -55m — reached in ~8-10 seconds!)
-    const stoppage1 = buildChadabajStoppage3D(11.0, '১ নং টেম্পু স্ট্যান্ড চাঁদা চেকপোস্ট');
-    stoppage1.position.set(0, 0, -55);
-    stoppage1.userData.tollFee = 50;
-    this.scene.add(stoppage1);
-    this.chadabajStoppages.push(stoppage1);
-
-    // Stoppage 2: বাজার সমিতি চাঁদা চেকপোস্ট (Spaced at Z = -220m)
-    const stoppage2 = buildChadabajStoppage3D(11.0, '২ নং ঘাট সমিতি চাঁদা চেকপোস্ট');
-    stoppage2.position.set(0, 0, -220);
-    stoppage2.userData.tollFee = 50;
-    this.scene.add(stoppage2);
-    this.chadabajStoppages.push(stoppage2);
+    // 8. 🛑 AUTHENTIC CHADABAJ STOPPAGE (চাঁদাবাজ চেকপোস্ট) ACROSS THE ROAD!
+    // Shows once in the first part (at Z = -65m), then reappears after completing a FULL 600m round!
+    const stoppage = buildChadabajStoppage3D(11.0, '১ নং টেম্পু স্ট্যান্ড চাঁদা চেকপোস্ট');
+    stoppage.position.set(0, 0, -65);
+    stoppage.userData.tollFee = 50;
+    this.scene.add(stoppage);
+    this.chadabajStoppages = [stoppage];
 
     // 9. Celebratory Finish Line Arch Gantry at Gated Destination
     this.finishLineArch = buildFinishLine3D(11.2);
@@ -1034,9 +1027,9 @@ export class DriverScene3D {
         }
       }
 
-      // Reset stoppage loop when it goes far behind
+      // Reset stoppage after a FULL 600m round through the village route!
       if (stoppage.position.z > 60) {
-        stoppage.position.z -= 440;
+        stoppage.position.z -= 600; // Complete full round before reappearing
         stoppage.userData.isOpen = false;
         if (stoppage.userData.boomPivot) stoppage.userData.boomPivot.rotation.z = 0;
       }
@@ -1158,8 +1151,8 @@ export class DriverScene3D {
       return { x, y };
     };
 
-    // Stoppages on Mini-Map (red barrier icons)
-    [0.35, 0.70].forEach(stoppageT => {
+    // Single Stoppage on Mini-Map at start of round
+    [0.22].forEach(stoppageT => {
       const pt = getBezierPoint(stoppageT);
       ctx.fillStyle = '#EF4444';
       ctx.fillRect(pt.x - 3, pt.y - 3, 6, 6);
