@@ -116,6 +116,10 @@ class SoundController {
     osc.stop(t + 0.35);
   }
 
+  playHornSound() {
+    this.playTruckHornSFX();
+  }
+
   // Dual-tone iconic Bangladeshi truck air horn "পোঁওও-পোঁওও!"
   playTruckHorn() {
     if (this.muted) return;
@@ -155,9 +159,17 @@ class SoundController {
   playTruckHornSFX() {
     if (this.muted) return;
     this.init();
-    // Try buffer first (zero latency), fallback to synth
-    if (!this._playBuffer(this._hornBuffer, 0.85)) {
-      this.playTruckHorn();
+    // Try buffer first (zero latency), fallback to HTML5 Audio element
+    if (!this._playBuffer(this._hornBuffer, 0.95)) {
+      try {
+        const audio = new Audio('/sound%20effact/jaldi%20bohase%20hato.mp4');
+        audio.volume = 0.95;
+        audio.play().catch(() => {
+          this.playTruckHorn();
+        });
+      } catch (e) {
+        this.playTruckHorn();
+      }
     }
   }
 
@@ -165,9 +177,17 @@ class SoundController {
   playEscapedSFX() {
     if (this.muted) return;
     this.init();
-    // Try buffer first (zero latency), fallback to synth
-    if (!this._playBuffer(this._escapedBuffer, 0.9)) {
-      this.playBuzzer();
+    // Try buffer first (zero latency), fallback to HTML5 Audio element
+    if (!this._playBuffer(this._escapedBuffer, 1.0)) {
+      try {
+        const audio = new Audio('/sound%20effact/pakarmadarchod%20update.mp4');
+        audio.volume = 1.0;
+        audio.play().catch(() => {
+          this.playBuzzer();
+        });
+      } catch (e) {
+        this.playBuzzer();
+      }
     }
   }
 

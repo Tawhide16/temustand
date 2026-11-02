@@ -271,34 +271,39 @@ export class DriverScene3D {
 
           </div>
 
-          <!-- CHADABAJ STOPPAGE ENCOUNTER MODAL -->
+          <!-- CHADABAJ STOPPAGE ENCOUNTER MODAL (EXACTLY 2 OPTIONS) -->
           <div id="sim-chadabaj-modal" class="modal-overlay" style="display: none; z-index: 120;">
-            <div class="modal-dialog" style="max-width: 460px; border-color: #C8442B; background: #FFF8EC; text-align: center;">
-              <div style="font-size: 3.5rem; margin-bottom: 4px;">🛑 🛺 🪙</div>
-              <h3 id="stoppage-title" style="color: #C8442B; font-size: 1.55rem; font-weight: 900; margin-bottom: 6px;">
+            <div class="modal-dialog" style="max-width: 480px; border: 4px solid #C8442B; background: #FFF8EC; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.85);">
+              <div style="font-size: 3.8rem; margin-bottom: 2px;">🛑 🛺 🪙</div>
+              <h3 id="stoppage-title" style="color: #C8442B; font-size: 1.65rem; font-weight: 900; margin-bottom: 6px;">
                 চাঁদাবাজ চেকপোস্টে গাড়ি থামল!
               </h3>
               
-              <div style="background: rgba(200, 68, 43, 0.12); border: 2px dashed #C8442B; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; text-align: left;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                  <span style="font-size: 1.4rem;">🕶️</span>
-                  <strong style="color: #1A110B; font-size: 1.05rem;">চাঁদাবাজ তোফাজ্জল মিয়া:</strong>
+              <div style="background: rgba(200, 68, 43, 0.12); border: 2px dashed #C8442B; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; text-align: left;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.5rem;">🕶️</span>
+                    <strong style="color: #1A110B; font-size: 1.15rem;">চাঁদাবাজ তোফাজ্জল মিয়া:</strong>
+                  </div>
+                  <span id="stoppage-fee-badge" style="background: #C8442B; color: #FFF; font-size: 0.88rem; font-weight: 900; padding: 3px 10px; border-radius: 6px;">
+                    ধার্যকৃত চাঁদা: <span id="stoppage-fee-amount">৳৫০</span>
+                  </span>
                 </div>
-                <p id="stoppage-dialog-text" style="font-size: 0.96rem; color: #222; line-height: 1.45; margin: 0;">
-                  "এই টেম্পু ড্রাইভার! গাড়ি সাইড কর! স্ট্যান্ডে ঢুকতে হলে <strong>৫০ টাকা চাঁদা</strong> দে! রসিদ ছাড়া এক ইঞ্চিও সামনে যাবি না!"
+                <p id="stoppage-dialog-text" style="font-size: 1.02rem; color: #111; line-height: 1.5; margin: 0; font-weight: 600;">
+                  "এই টেম্পু ড্রাইভার! গাড়ি সাইড কর! স্ট্যান্ড পার হতে হলে <strong>৫০ টাকা চাঁদা</strong> দে! টাকা না দিলে ব্যারিকেড খুলব না!"
                 </p>
               </div>
 
-              <!-- Action Choices -->
-              <div style="display: flex; flex-direction: column; gap: 9px;">
-                <button id="btn-choice-pay" class="btn btn-primary" style="font-size: 1.05rem; padding: 11px; justify-content: center;">
-                  💸 চাঁদা দিন (৳৫০ দিয়ে নিরাপদে যান)
+              <!-- EXACT 2 OPTIONS -->
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- OPTION 1: PAY CHADA -> DOOR OPENS -->
+                <button id="btn-choice-pay" class="btn btn-green" style="font-size: 1.25rem; padding: 14px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(63,155,91,0.4);">
+                  <span>💸</span> ৫০ টাকা চাঁদা পরিশোধ করুন (গেট খুলে যাবে)
                 </button>
-                <button id="btn-choice-namedrop" class="btn btn-secondary" style="font-size: 1rem; padding: 10px; justify-content: center; background: #2E86AB; color: #FFF; border-color: #1B4965;">
-                  👑 বড় নেতার নাম ভাঙান (ফ্রি পারাপারের চেষ্টা)
-                </button>
-                <button id="btn-choice-escape" class="btn btn-danger" style="font-size: 1rem; padding: 10px; justify-content: center; background: #C8442B; color: #FFF;">
-                  ⚡ ব্যারিকেড ভেঙে ধোঁয়া উড়িয়ে পালান! (হর্ন ও স্পিড)
+
+                <!-- OPTION 2: BREAK TOLL BAR -> AUDIO "পাকার মাদারচোদ!" -->
+                <button id="btn-choice-escape" class="btn btn-danger" style="font-size: 1.18rem; padding: 13px; font-weight: 900; background: #C8442B; border-color: #991B1B; color: #FFF; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(200,68,43,0.4);">
+                  <span>💥</span> ব্যারিকেড ভেঙে ধোঁয়া উড়িয়ে পালান! ("পাকার মাদারচোদ!")
                 </button>
               </div>
             </div>
@@ -485,15 +490,17 @@ export class DriverScene3D {
     this.scene.add(this.directionalChevrons);
 
     // 8. 🛑 AUTHENTIC CHADABAJ STOPPAGES (চাঁদাবাজ চেকপোস্ট) ACROSS THE ROAD!
-    // Stoppage 1: গ্রামীণ মোড় চাঁদা চেকপোস্ট (Spaced at Z = -180m)
-    const stoppage1 = buildChadabajStoppage3D(11.0, '১ নং গ্রামীণ মোড় চাঁদা চেকপোস্ট');
-    stoppage1.position.set(0, 0, -180);
+    // Stoppage 1: গ্রামীণ মোড় চাঁদা চেকপোস্ট (Spaced at Z = -55m — reached in ~8-10 seconds!)
+    const stoppage1 = buildChadabajStoppage3D(11.0, '১ নং টেম্পু স্ট্যান্ড চাঁদা চেকপোস্ট');
+    stoppage1.position.set(0, 0, -55);
+    stoppage1.userData.tollFee = 50;
     this.scene.add(stoppage1);
     this.chadabajStoppages.push(stoppage1);
 
-    // Stoppage 2: বাজার সমিতি চাঁদা চেকপোস্ট (Spaced at Z = -380m)
-    const stoppage2 = buildChadabajStoppage3D(11.0, '২ নং বাজার সমিতি চাঁদা চেকপোস্ট');
-    stoppage2.position.set(0, 0, -380);
+    // Stoppage 2: বাজার সমিতি চাঁদা চেকপোস্ট (Spaced at Z = -220m)
+    const stoppage2 = buildChadabajStoppage3D(11.0, '২ নং ঘাট সমিতি চাঁদা চেকপোস্ট');
+    stoppage2.position.set(0, 0, -220);
+    stoppage2.userData.tollFee = 50;
     this.scene.add(stoppage2);
     this.chadabajStoppages.push(stoppage2);
 
@@ -665,65 +672,86 @@ export class DriverScene3D {
   bindChadabajChoices() {
     const modal = this.container.querySelector('#sim-chadabaj-modal');
     const payBtn = this.container.querySelector('#btn-choice-pay');
-    const namedropBtn = this.container.querySelector('#btn-choice-namedrop');
     const escapeBtn = this.container.querySelector('#btn-choice-escape');
 
-    const resolveEncounter = (bribeAmt, titleMsg, subtitleMsg) => {
-      this.totalBribePaid += bribeAmt;
-      this.isEncounterModalActive = false;
-
-      if (this.activeStoppageEncounter) {
-        this.activeStoppageEncounter.userData.isOpen = true;
-      }
-
-      modal.style.display = 'none';
-      modal.classList.remove('active');
-
-      const toast = document.createElement('div');
-      toast.className = 'coin-popup';
-      toast.style.left = '50%';
-      toast.style.top = '30%';
-      toast.style.fontSize = '1.35rem';
-      toast.textContent = titleMsg;
-      this.container.appendChild(toast);
-      setTimeout(() => toast.remove(), 1400);
-
-      // Resume motion
-      this.speed = Math.max(20, this.cruiseSpeed * 0.6);
-      this.keyState.forward = true;
-      setTimeout(() => {
-        this.activeStoppageEncounter = null;
-      }, 2500);
-    };
-
-    // 1. Pay Bribe (৳৫০)
+    // OPTION 1: 💸 PAY CHADA (DOOR OPENS!)
     if (payBtn) {
       payBtn.addEventListener('click', () => {
         sound.playCoin();
-        resolveEncounter(50, '💸 ৫০ টাকা চাঁদা পরিশোধ! গেট উন্মুক্ত!', 'রসিদ সংগ্রহ করা হয়েছে');
-      });
-    }
+        const fee = this.activeStoppageEncounter?.userData?.tollFee || 50;
+        this.totalBribePaid += fee;
+        this.isEncounterModalActive = false;
 
-    // 2. Name-drop Local Political Leader (60% Free VIP pass, 40% Backfires!)
-    if (namedropBtn) {
-      namedropBtn.addEventListener('click', () => {
-        const isSuccess = Math.random() < 0.65;
-        if (isSuccess) {
-          sound.playSuccess();
-          resolveEncounter(0, '👑 "আরে ভাই আগে বলবেন তো! যান যান!" (ফ্রি পারাপার!)', 'নেতার নামে সালাম পেয়ে পার');
-        } else {
-          sound.playWrong();
-          resolveEncounter(100, '🚨 "নেতার পাওয়ার তো শেষ! ডাবল জরিমানা ৳১০০!"', 'ডাবল চাঁদা খেসারত');
+        // Open the barrier door immediately!
+        if (this.activeStoppageEncounter) {
+          this.activeStoppageEncounter.userData.isOpen = true;
+          if (this.activeStoppageEncounter.userData.boomPivot) {
+            this.activeStoppageEncounter.userData.boomPivot.rotation.z = Math.PI * 0.48;
+          }
         }
+
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+
+        const toast = document.createElement('div');
+        toast.className = 'coin-popup';
+        toast.style.left = '50%';
+        toast.style.top = '28%';
+        toast.style.fontSize = '1.3rem';
+        toast.textContent = `✅ ৳${fee} চাঁদা পরিশোধিত! গেট খুলে গেছে!`;
+        this.container.appendChild(toast);
+        setTimeout(() => toast.remove(), 1600);
+
+        // Resume motion smoothly through open door
+        this.speed = 28;
+        this.keyState.forward = true;
+        setTimeout(() => {
+          this.activeStoppageEncounter = null;
+        }, 2500);
       });
     }
 
-    // 3. Speed & Escape (Smash through the barrier!)
+    // OPTION 2: 💥 BREAK TOLL BAR & ESCAPE -> PLAYS "পাকার মাদারচোদ!"
     if (escapeBtn) {
       escapeBtn.addEventListener('click', () => {
-        sound.playTruckHornSFX();
+        // PLAY EXACT AUDIO EFFECT "পাকার মাদারচোদ!"
+        sound.playEscapedSFX();
+        try {
+          const a = new Audio('/sound%20effact/pakarmadarchod%20update.mp4');
+          a.volume = 1.0;
+          a.play().catch(() => {});
+        } catch (e) {}
+
         this.escapesCount++;
-        resolveEncounter(0, '⚡ ব্যারিকেড ভেঙে ধোঁয়া উড়িয়ে পার! "ওই ধর ধর!"', 'চাঁদাবাজদের ফাঁকি দিয়ে পলায়ন');
+        this.isEncounterModalActive = false;
+
+        // Break open the barrier immediately!
+        if (this.activeStoppageEncounter) {
+          this.activeStoppageEncounter.userData.isOpen = true;
+          if (this.activeStoppageEncounter.userData.boomPivot) {
+            this.activeStoppageEncounter.userData.boomPivot.rotation.z = Math.PI * 0.58;
+          }
+        }
+
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+
+        const toast = document.createElement('div');
+        toast.className = 'coin-popup';
+        toast.style.left = '50%';
+        toast.style.top = '28%';
+        toast.style.fontSize = '1.35rem';
+        toast.style.color = '#EF4444';
+        toast.textContent = `🚨 "পাকার মাদারচোদ!" — ব্যারিকেড ভেঙে পলায়ন!`;
+        this.container.appendChild(toast);
+        setTimeout(() => toast.remove(), 2200);
+
+        // Burst forward at turbo speed!
+        this.speed = 65;
+        this.keyState.forward = true;
+        setTimeout(() => {
+          this.activeStoppageEncounter = null;
+        }, 2500);
       });
     }
   }
@@ -971,47 +999,43 @@ export class DriverScene3D {
 
     // 9. CHADABAJ STOPPAGE (চাঁদাবাজ চেকপোস্ট) DETECTION & INTERACTION
     let nearAnyStoppage = false;
+    let stoppageDistMeters = 0;
+
     this.chadabajStoppages.forEach(stoppage => {
+      // If modal is active for this stoppage, clamp it right at z = -6.0m directly in front of the vehicle!
+      if (this.isEncounterModalActive && this.activeStoppageEncounter === stoppage) {
+        stoppage.position.z = -6.0;
+        this.speed = 0;
+        return;
+      }
+
       stoppage.position.z += worldSpeed;
 
       // Animate warning light blink
       if (stoppage.userData.redLight) {
-        stoppage.userData.redLight.visible = Math.floor(performance.now() * 0.004) % 2 === 0;
+        stoppage.userData.redLight.visible = Math.floor(performance.now() * 0.005) % 2 === 0;
       }
 
-      // Animate boom arm opening upwards if cleared
+      // Animate boom arm opening upwards if cleared / paid / broken
       if (stoppage.userData.isOpen && stoppage.userData.boomPivot) {
-        stoppage.userData.boomPivot.rotation.z += (Math.PI * 0.45 - stoppage.userData.boomPivot.rotation.z) * 0.12;
+        stoppage.userData.boomPivot.rotation.z += (Math.PI * 0.48 - stoppage.userData.boomPivot.rotation.z) * 0.15;
       }
 
       // Detection zone: Approaching stoppage
       const distToStoppage = stoppage.position.z; // negative value ahead, 0 is right at the tempo
       if (distToStoppage > -45 && distToStoppage < 5 && !stoppage.userData.isOpen) {
         nearAnyStoppage = true;
+        stoppageDistMeters = Math.max(1, Math.round(Math.abs(distToStoppage)));
 
-        // Pull up to stoppage: trigger extortion encounter!
-        if (distToStoppage > -12 && distToStoppage < 2 && !this.isEncounterModalActive) {
-          // If player is on the far shoulder (evading around the post), let them slip past!
-          if (Math.abs(this.truckX) > 3.85 && this.speed > 35) {
-            // Dodged through the edge!
-            sound.playTruckHornSFX();
-            stoppage.userData.isOpen = true;
-            const toast = document.createElement('div');
-            toast.className = 'coin-popup';
-            toast.style.left = '50%';
-            toast.style.top = '30%';
-            toast.textContent = '💨 সাইড দিয়ে ফাঁকি দিয়ে বের হয়ে গেছেন!';
-            this.container.appendChild(toast);
-            setTimeout(() => toast.remove(), 1200);
-          } else {
-            // Blocked by barrier! Trigger modal
-            this.triggerChadabajEncounter(stoppage);
-          }
+        // Arrive at the barrier!
+        if (distToStoppage >= -7.5 && distToStoppage <= 2.5 && !this.isEncounterModalActive) {
+          stoppage.position.z = -6.0;
+          this.triggerChadabajEncounter(stoppage);
         }
       }
 
       // Reset stoppage loop when it goes far behind
-      if (stoppage.position.z > 80) {
+      if (stoppage.position.z > 60) {
         stoppage.position.z -= 440;
         stoppage.userData.isOpen = false;
         if (stoppage.userData.boomPivot) stoppage.userData.boomPivot.rotation.z = 0;
@@ -1021,7 +1045,12 @@ export class DriverScene3D {
     // Toggle approaching warning
     const warnEl = this.container.querySelector('#sim-stoppage-warn');
     if (warnEl) {
-      warnEl.style.display = nearAnyStoppage && !this.isEncounterModalActive ? 'block' : 'none';
+      if (nearAnyStoppage && !this.isEncounterModalActive) {
+        warnEl.textContent = `🛑 সামনে চাঁদা চেকপোস্ট (${toBengaliNumber(stoppageDistMeters)} মি.)! গতি কমান!`;
+        warnEl.style.display = 'block';
+      } else {
+        warnEl.style.display = 'none';
+      }
     }
 
     // Animate Hovering Chevron Arrows
@@ -1054,13 +1083,19 @@ export class DriverScene3D {
     this.isEncounterModalActive = true;
     this.activeStoppageEncounter = stoppage;
     this.speed = 0;
+    this.keyState.forward = false;
+    this.keyState.backward = false;
 
-    sound.playHornSound();
+    sound.playTruckHornSFX();
     sound.vibrate([100, 50, 100]);
 
     const modal = this.container.querySelector('#sim-chadabaj-modal');
     const titleEl = this.container.querySelector('#stoppage-title');
+    const feeEl = this.container.querySelector('#stoppage-fee-amount');
+    const tollFee = stoppage.userData.tollFee || 50;
+
     if (titleEl) titleEl.textContent = `🛑 ${stoppage.userData.title || 'চাঁদাবাজ চেকপোস্ট'}`;
+    if (feeEl) feeEl.textContent = `৳${tollFee}`;
 
     if (modal) {
       modal.style.display = 'flex';
