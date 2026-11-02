@@ -2414,5 +2414,178 @@ export function buildVillageCoconutTree3D() {
   return tree;
 }
 
+// =========================================================================
+// 🛑 AUTHENTIC BANGLADESHI CHADABAJ STOPPAGE & BARRICADE (চাঁদাবাজ চেকপোস্ট)
+// =========================================================================
+export function buildChadabajStoppage3D(roadWidth = 11.0, title = '১ নং টেম্পু স্ট্যান্ড চাঁদা চেকপোস্ট') {
+  const stoppage = new THREE.Group();
+
+  const barrierMat = new THREE.MeshLambertMaterial({ map: createBarrierTexture() });
+  const redPostMat = new THREE.MeshStandardMaterial({ color: '#C8442B', roughness: 0.5 });
+  const darkMetalMat = new THREE.MeshStandardMaterial({ color: '#263238', roughness: 0.4, metalness: 0.8 });
+  const woodMat = new THREE.MeshStandardMaterial({ color: '#5D4037', roughness: 0.9 });
+  const tinMat = new THREE.MeshStandardMaterial({ map: createCorrugatedTinRoofTexture(), roughness: 0.6 });
+
+  // 1. Left Post (Catch post)
+  const leftPost = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 2.4, 8), redPostMat);
+  leftPost.position.set(-roadWidth / 2 - 0.2, 1.2, 0);
+  leftPost.castShadow = true;
+  stoppage.add(leftPost);
+
+  // 2. Right Pivot Post & Mechanism
+  const rightPost = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.32, 2.6, 8), redPostMat);
+  rightPost.position.set(roadWidth / 2 + 0.2, 1.3, 0);
+  rightPost.castShadow = true;
+  stoppage.add(rightPost);
+
+  // Flashing Red Warning Light on top of Right Post
+  const lightGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.22, 10);
+  const redLightMat = new THREE.MeshBasicMaterial({ color: '#FF1744' });
+  const redLight = new THREE.Mesh(lightGeo, redLightMat);
+  redLight.position.set(roadWidth / 2 + 0.2, 2.75, 0);
+  stoppage.add(redLight);
+
+  // 3. Animated Boom Arm with Pivot Group
+  const boomPivot = new THREE.Group();
+  boomPivot.position.set(roadWidth / 2 + 0.2, 1.6, 0);
+
+  // Boom horizontal bar (extends across the entire road width)
+  const boomArm = new THREE.Mesh(new THREE.BoxGeometry(roadWidth + 0.6, 0.32, 0.14), barrierMat);
+  // Center of arm is halfway to the left from pivot
+  boomArm.position.set(-(roadWidth + 0.6) / 2, 0, 0);
+  boomArm.castShadow = true;
+  boomPivot.add(boomArm);
+
+  // Counterweight on back of pivot
+  const counterweight = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.45, 0.3), darkMetalMat);
+  counterweight.position.set(0.7, 0, 0);
+  boomPivot.add(counterweight);
+
+  // Central Signboard "🛑 থামুন! চাঁদা দিন" mounted to the boom arm
+  const signCanvas = document.createElement('canvas');
+  signCanvas.width = 512;
+  signCanvas.height = 128;
+  const ctx = signCanvas.getContext('2d');
+  ctx.fillStyle = '#C8442B';
+  ctx.fillRect(0, 0, 512, 128);
+  ctx.strokeStyle = '#FFD700';
+  ctx.lineWidth = 10;
+  ctx.strokeRect(6, 6, 500, 116);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 36px "Hind Siliguri", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🛑 থামুন! চাঁদা চেকপোস্ট', 256, 52);
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 24px "Hind Siliguri", sans-serif';
+  ctx.fillText('স্ট্যান্ড ফি ৫০ টাকা • রসিদ নিন', 256, 95);
+
+  const signTex = new THREE.CanvasTexture(signCanvas);
+  const signMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(3.6, 0.9),
+    new THREE.MeshBasicMaterial({ map: signTex })
+  );
+  signMesh.position.set(-(roadWidth + 0.6) / 2, 0.7, 0.1);
+  boomPivot.add(signMesh);
+
+  stoppage.add(boomPivot);
+
+  // 4. Extortion Toll Collection Shack / Booth on Right Roadside
+  const boothGroup = new THREE.Group();
+  boothGroup.position.set(roadWidth / 2 + 3.0, 0, -1.8);
+
+  // Wood/Tin Shack Walls
+  const shackWalls = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.5, 2.6), woodMat);
+  shackWalls.position.set(0, 1.25, 0);
+  shackWalls.castShadow = true;
+  boothGroup.add(shackWalls);
+
+  // Slanted Tin Roof
+  const shackRoof = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 3.2), tinMat);
+  shackRoof.position.set(0, 2.65, 0.1);
+  shackRoof.rotation.x = Math.PI * 0.14;
+  shackRoof.castShadow = true;
+  boothGroup.add(shackRoof);
+
+  // Toll Table outside
+  const table = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.85, 0.9), woodMat);
+  table.position.set(0, 0.42, 1.8);
+  boothGroup.add(table);
+
+  // Metal Cash Box on Table
+  const cashBox = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.25, 0.35), darkMetalMat);
+  cashBox.position.set(-0.35, 0.98, 1.8);
+  boothGroup.add(cashBox);
+
+  stoppage.add(boothGroup);
+
+  // 5. 3D Chadabaj Character (লাঠিয়াল চাঁদাবাজ) Standing Beside Road
+  const chadabajChar = new THREE.Group();
+  chadabajChar.position.set(roadWidth / 2 + 1.2, 0, 0.6);
+
+  // Lungi lower body
+  const lungiMat = new THREE.MeshStandardMaterial({ color: '#1E3A8A', roughness: 0.8 }); // Blue checked lungi
+  const lungi = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.32, 1.1, 10), lungiMat);
+  lungi.position.set(0, 0.55, 0);
+  lungi.castShadow = true;
+  chadabajChar.add(lungi);
+
+  // Torso (White T-shirt with political black waistcoat)
+  const shirtMat = new THREE.MeshStandardMaterial({ color: '#F3F4F6' });
+  const vestMat = new THREE.MeshStandardMaterial({ color: '#111827' });
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.6, 0.3), shirtMat);
+  torso.position.set(0, 1.35, 0);
+  torso.castShadow = true;
+  chadabajChar.add(torso);
+
+  const vest = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.58, 0.32), vestMat);
+  vest.position.set(0, 1.35, 0);
+  chadabajChar.add(vest);
+
+  // Gamcha tied around neck
+  const gamchaMat = new THREE.MeshStandardMaterial({ color: '#DC2626' }); // Red gamcha
+  const gamcha = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.06, 8, 14), gamchaMat);
+  gamcha.rotation.x = Math.PI / 2;
+  gamcha.position.set(0, 1.62, 0);
+  chadabajChar.add(gamcha);
+
+  // Head with sunglasses
+  const skinMat = new THREE.MeshStandardMaterial({ color: '#8D5524', roughness: 0.7 });
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 12), skinMat);
+  head.position.set(0, 1.85, 0);
+  chadabajChar.add(head);
+
+  // Sunglasses
+  const glasses = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.06, 0.08), darkMetalMat);
+  glasses.position.set(0, 1.86, -0.14);
+  chadabajChar.add(glasses);
+
+  // Bamboo Lathi (লাঠি) in Hand
+  const lathiMat = new THREE.MeshStandardMaterial({ color: '#D4C28D', roughness: 0.8 });
+  const lathi = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.8, 8), lathiMat);
+  lathi.position.set(-0.35, 0.9, -0.1);
+  lathi.rotation.z = -0.15;
+  chadabajChar.add(lathi);
+
+  // Receipt book in left hand
+  const book = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.28, 0.06), new THREE.MeshStandardMaterial({ color: '#FEF08A' }));
+  book.position.set(0.32, 1.15, -0.1);
+  chadabajChar.add(book);
+
+  stoppage.add(chadabajChar);
+
+  // Store metadata
+  stoppage.userData = {
+    type: 'chadabajStoppage',
+    boomPivot: boomPivot,
+    redLight: redLight,
+    isOpen: false,
+    title: title,
+    tollFee: 50
+  };
+
+  return stoppage;
+}
+
+
 
 

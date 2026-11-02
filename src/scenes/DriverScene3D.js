@@ -14,7 +14,8 @@ import {
   buildVillageCoconutTree3D,
   buildFinishLine3D,
   buildBananaTree3D,
-  buildPalmTree3D
+  buildPalmTree3D,
+  buildChadabajStoppage3D
 } from '../systems/models3d.js';
 import {
   createVillageAsphaltRoadTexture,
@@ -25,9 +26,9 @@ import {
 // 🌾 BANGLADESHI VILLAGE ROUTE CHECKPOINTS
 // =========================================================================
 export const VILLAGE_CHECKPOINTS = [
-  { id: 1, name: 'সবুজ ধানক্ষেত ও নারকেল বাগান', targetDist: 4.0 },
+  { id: 1, name: '১ নং গ্রামীণ মোড় ও চাঁদা চেকপোস্ট', targetDist: 4.0 },
   { id: 2, name: 'শান্ত পুকুর ও খালের ব্রিজ', targetDist: 3.0 },
-  { id: 3, name: 'পল্লী বসতি ও মাটির ঘর', targetDist: 2.0 },
+  { id: 3, name: '২ নং বাজার সমিতি চাঁদা চেকপোস্ট', targetDist: 2.0 },
   { id: 4, name: 'গ্রামের হাট ও চায়ের টং দোকান', targetDist: 1.0 },
   { id: 5, name: 'ছায়াঘেরা গ্রাম্য পথ ও বিজয় ফটক', targetDist: 0.0 }
 ];
@@ -42,6 +43,14 @@ export class DriverScene3D {
     this.renderer = null;
     this.animId = null;
 
+    // Camera Modes (Elevated view is default for clear road overview)
+    this.cameraModes = [
+      { id: 'elevated', name: 'উঁচু অ্যাঙ্গেল (Elevated)', y: 3.8, z: 6.5, lookY: 1.4, lookZ: -18.0 },
+      { id: 'chase', name: 'কাছের ভিউ (Chase)', y: 2.5, z: 4.5, lookY: 1.5, lookZ: -14.0 },
+      { id: 'topdown', name: 'টপ-ডাউন অ্যাকশন (Overview)', y: 6.8, z: 8.0, lookY: 0.6, lookZ: -12.0 }
+    ];
+    this.currentCamIndex = 0; // Default: Elevated
+
     // Trip & Stats
     this.totalDistanceKm = 5.0;
     this.remainingDistanceKm = 5.0;
@@ -50,6 +59,8 @@ export class DriverScene3D {
     this.delivered = false;
     this.vegetablesKg = 1000;
     this.maxSpeedReached = 0;
+    this.totalBribePaid = 0;
+    this.escapesCount = 0;
 
     // Timer (Milliseconds stopwatch)
     this.elapsedSeconds = 0;
@@ -84,11 +95,11 @@ export class DriverScene3D {
     this.directionalChevrons = null;
     this.finishLineArch = null;
     this.canalBridge = null;
-    this.roadCurveOffset = 0;
 
-    // Audio Motor Synth
-    this.motorOsc = null;
-    this.motorGain = null;
+    // Chadabaj Stoppages System
+    this.chadabajStoppages = [];
+    this.activeStoppageEncounter = null;
+    this.isEncounterModalActive = false;
 
     // Bindings
     this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -107,7 +118,7 @@ export class DriverScene3D {
         <!-- 3D WebGL Canvas Viewport -->
         <div id="three-container" style="flex: 1; width: 100%; height: 100%; position: relative; overflow: hidden;">
           
-          <!-- PROFESSIONAL DRIVING SIMULATOR HUD OVERLAY (MATCHING REFERENCE IMAGE) -->
+          <!-- PROFESSIONAL DRIVING SIMULATOR HUD OVERLAY -->
           <div class="sim-hud-overlay">
             
             <!-- TOP-LEFT STATUS PANEL -->
@@ -126,12 +137,17 @@ export class DriverScene3D {
               </div>
             </div>
 
-            <!-- TOP-RIGHT GROUP (PAUSE BUTTON & MINI-MAP) -->
+            <!-- TOP-RIGHT GROUP (CAMERA ANGLE, MINI-MAP & PAUSE) -->
             <div class="sim-top-right-group">
               <!-- Mini-Map Card -->
               <div class="sim-minimap-card">
                 <canvas id="sim-minimap-canvas" class="sim-minimap-canvas" width="98" height="116"></canvas>
               </div>
+
+              <!-- Camera View Toggle Button -->
+              <button id="btn-sim-cam" class="sim-pause-btn" style="border-radius: 12px; width: 44px; font-size: 1.15rem;" title="ক্যামেরা অ্যাঙ্গেল পরিবর্তন (C)">
+                🎥
+              </button>
 
               <!-- Pause Button -->
               <button id="btn-sim-pause" class="sim-pause-btn" title="Pause Game (ESC / P)">
@@ -144,9 +160,14 @@ export class DriverScene3D {
               🏁 চেকপয়েন্ট ১/৫ অতিক্রম!
             </div>
 
+            <!-- CHADABAJ STOPPAGE APPROACHING WARNING -->
+            <div id="sim-stoppage-warn" style="display: none; position: absolute; top: 85px; left: 50%; transform: translateX(-50%); background: rgba(220, 38, 38, 0.95); border: 2px solid #FEF08A; border-radius: 10px; padding: 6px 20px; color: #FFF; font-weight: 900; font-size: 1.05rem; box-shadow: 0 4px 18px rgba(0,0,0,0.7); pointer-events: none; z-index: 55; animation: pulse 0.7s infinite alternate;">
+              🛑 সামনে স্ট্যান্ডের চাঁদাবাজ চেকপোস্ট! গতি কমান!
+            </div>
+
             <!-- ROAD SHOULDER OFF-ROAD WARNING -->
-            <div id="sim-offroad-warn" style="display: none; position: absolute; top: 145px; left: 50%; transform: translateX(-50%); background: rgba(220, 38, 38, 0.9); border: 2px solid #FEF08A; border-radius: 8px; padding: 4px 16px; color: #FFF; font-weight: 800; font-size: 0.88rem; box-shadow: 0 4px 12px rgba(0,0,0,0.6); pointer-events: none; z-index: 55;">
-              ⚠️ রাস্তার বাইরে (কাঁচা মাটি)! গতি কমে যাচ্ছে
+            <div id="sim-offroad-warn" style="display: none; position: absolute; top: 135px; left: 50%; transform: translateX(-50%); background: rgba(217, 119, 6, 0.92); border: 2px solid #FEF08A; border-radius: 8px; padding: 4px 16px; color: #FFF; font-weight: 800; font-size: 0.88rem; box-shadow: 0 4px 12px rgba(0,0,0,0.6); pointer-events: none; z-index: 55;">
+              ⚠️ রাস্তার বাইরে (কাঁচা মাটি)! গতি সীমিত
             </div>
 
             <!-- BOTTOM-LEFT STEERING WHEEL OVERLAY -->
@@ -176,18 +197,15 @@ export class DriverScene3D {
                 <!-- Grip Ribs -->
                 <path d="M 18,92 Q 10,100 18,108" fill="none" stroke="#4B5563" stroke-width="3" />
                 <path d="M 182,92 Q 190,100 182,108" fill="none" stroke="#4B5563" stroke-width="3" />
-                <!-- Top Center Alignment Marker (Yellow racing stripe) -->
+                <!-- Top Center Yellow Alignment Stripe -->
                 <rect x="96" y="8" width="8" height="18" rx="2" fill="#F5A623" />
-                <!-- Left Spoke -->
+                <!-- Spokes -->
                 <path d="M 40,100 L 75,96 L 75,104 Z" fill="url(#spokeGrad)" />
-                <!-- Right Spoke -->
                 <path d="M 160,100 L 125,96 L 125,104 Z" fill="url(#spokeGrad)" />
-                <!-- Bottom Center Spoke -->
                 <path d="M 100,165 L 94,125 L 106,125 Z" fill="url(#spokeGrad)" />
                 <!-- Center Hub -->
                 <circle cx="100" cy="100" r="32" fill="url(#hubGrad)" stroke="#6B7280" stroke-width="2.5" />
                 <circle cx="100" cy="100" r="22" fill="#111827" stroke="#4B5563" stroke-width="1.5" />
-                <!-- Center E-Rickshaw Icon -->
                 <text x="100" y="107" font-size="20" text-anchor="middle" fill="#FFD700">🛺</text>
               </svg>
             </div>
@@ -199,7 +217,6 @@ export class DriverScene3D {
               <div class="sim-speedo-gauge">
                 <svg class="sim-speedo-svg" viewBox="0 0 160 160">
                   <defs>
-                    <!-- Arc Gradient: Green (0-35) -> Yellow (35-55) -> Red (55-80) -->
                     <linearGradient id="speedArcGrad" x1="0%" y1="100%" x2="100%" y2="0%">
                       <stop offset="0%" stop-color="#10B981" />
                       <stop offset="50%" stop-color="#F59E0B" />
@@ -207,16 +224,11 @@ export class DriverScene3D {
                     </linearGradient>
                   </defs>
 
-                  <!-- Dial Background Disc -->
                   <circle cx="80" cy="80" r="74" fill="rgba(17, 24, 39, 0.88)" stroke="rgba(255, 255, 255, 0.2)" stroke-width="2" />
-                  
-                  <!-- Inactive Track Arc (135 deg to 405 deg) -->
                   <circle cx="80" cy="80" r="62" fill="none" stroke="#374151" stroke-width="10" stroke-dasharray="292" stroke-dashoffset="73" stroke-linecap="round" transform="rotate(135 80 80)" />
-                  
-                  <!-- Dynamic Colored Active Speed Arc -->
                   <circle id="speedo-active-arc" cx="80" cy="80" r="62" fill="none" stroke="url(#speedArcGrad)" stroke-width="10" stroke-dasharray="292" stroke-dashoffset="292" stroke-linecap="round" transform="rotate(135 80 80)" style="transition: stroke-dashoffset 0.08s ease-out;" />
 
-                  <!-- Speed Gauge Needle -->
+                  <!-- Needle -->
                   <g id="speedo-needle-group" transform="rotate(135 80 80)" style="transition: transform 0.08s ease-out;">
                     <polygon points="80,24 83,80 77,80" fill="#EF4444" />
                     <circle cx="80" cy="80" r="6" fill="#F3F4F6" stroke="#111827" stroke-width="2" />
@@ -231,7 +243,6 @@ export class DriverScene3D {
 
               <!-- FOOT PEDALS (BRAKE & RACE) -->
               <div class="sim-pedals-group">
-                
                 <!-- BRAKE PEDAL -->
                 <div id="btn-pedal-brake" class="sim-pedal sim-pedal-brake" title="ব্রেক / রিভার্স (S / Down Arrow)">
                   <div class="sim-pedal-grip-lines">
@@ -254,15 +265,47 @@ export class DriverScene3D {
                   </div>
                   <div class="sim-pedal-label">RACE</div>
                 </div>
-
               </div>
 
             </div>
 
           </div>
 
+          <!-- CHADABAJ STOPPAGE ENCOUNTER MODAL -->
+          <div id="sim-chadabaj-modal" class="modal-overlay" style="display: none; z-index: 120;">
+            <div class="modal-dialog" style="max-width: 460px; border-color: #C8442B; background: #FFF8EC; text-align: center;">
+              <div style="font-size: 3.5rem; margin-bottom: 4px;">🛑 🛺 🪙</div>
+              <h3 id="stoppage-title" style="color: #C8442B; font-size: 1.55rem; font-weight: 900; margin-bottom: 6px;">
+                চাঁদাবাজ চেকপোস্টে গাড়ি থামল!
+              </h3>
+              
+              <div style="background: rgba(200, 68, 43, 0.12); border: 2px dashed #C8442B; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; text-align: left;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                  <span style="font-size: 1.4rem;">🕶️</span>
+                  <strong style="color: #1A110B; font-size: 1.05rem;">চাঁদাবাজ তোফাজ্জল মিয়া:</strong>
+                </div>
+                <p id="stoppage-dialog-text" style="font-size: 0.96rem; color: #222; line-height: 1.45; margin: 0;">
+                  "এই টেম্পু ড্রাইভার! গাড়ি সাইড কর! স্ট্যান্ডে ঢুকতে হলে <strong>৫০ টাকা চাঁদা</strong> দে! রসিদ ছাড়া এক ইঞ্চিও সামনে যাবি না!"
+                </p>
+              </div>
+
+              <!-- Action Choices -->
+              <div style="display: flex; flex-direction: column; gap: 9px;">
+                <button id="btn-choice-pay" class="btn btn-primary" style="font-size: 1.05rem; padding: 11px; justify-content: center;">
+                  💸 চাঁদা দিন (৳৫০ দিয়ে নিরাপদে যান)
+                </button>
+                <button id="btn-choice-namedrop" class="btn btn-secondary" style="font-size: 1rem; padding: 10px; justify-content: center; background: #2E86AB; color: #FFF; border-color: #1B4965;">
+                  👑 বড় নেতার নাম ভাঙান (ফ্রি পারাপারের চেষ্টা)
+                </button>
+                <button id="btn-choice-escape" class="btn btn-danger" style="font-size: 1rem; padding: 10px; justify-content: center; background: #C8442B; color: #FFF;">
+                  ⚡ ব্যারিকেড ভেঙে ধোঁয়া উড়িয়ে পালান! (হর্ন ও স্পিড)
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- PAUSE MODAL OVERLAY -->
-          <div id="sim-pause-modal" class="modal-overlay" style="display: none; z-index: 100;">
+          <div id="sim-pause-modal" class="modal-overlay" style="display: none; z-index: 130;">
             <div class="modal-dialog" style="max-width: 420px; text-align: center;">
               <div style="font-size: 3rem; margin-bottom: 8px;">⏸️</div>
               <h2 style="color: #F5A623; font-size: 1.8rem; font-weight: 900; margin-bottom: 6px;">
@@ -313,12 +356,13 @@ export class DriverScene3D {
     this.scene = new THREE.Scene();
     const skyColor = new THREE.Color('#78B9ED'); // Crisp blue sunny sky
     this.scene.background = skyColor;
-    this.scene.fog = new THREE.FogExp2('#A7D3F5', 0.0038);
+    this.scene.fog = new THREE.FogExp2('#A7D3F5', 0.0035);
 
-    // 2. Camera: Professional Third-Person Follow Perspective
+    // 2. Camera: Professional Elevated Third-Person View (Clear view over roof looking down road)
+    const initialCam = this.cameraModes[this.currentCamIndex];
     this.camera = new THREE.PerspectiveCamera(54, width / height, 0.1, 550);
-    this.camera.position.set(0, 2.45, 4.3);
-    this.camera.lookAt(0, 1.48, -14.0);
+    this.camera.position.set(initialCam.pos?.[0] || 0, initialCam.y, initialCam.z);
+    this.camera.lookAt(0, initialCam.lookY, initialCam.lookZ);
 
     // 3. WebGL Renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -328,7 +372,7 @@ export class DriverScene3D {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(this.renderer.domElement);
 
-    // 4. Lighting Setup: Warm Sunlight & Atmospheric Ambient
+    // 4. Lighting: Warm Sunlight & Atmospheric Ambient
     const hemiLight = new THREE.HemisphereLight('#E3F2FD', '#33691E', 0.85);
     this.scene.add(hemiLight);
 
@@ -386,7 +430,7 @@ export class DriverScene3D {
     this.truck.rotation.y = Math.PI; // Orient forward along negative Z
     this.scene.add(this.truck);
 
-    // 8. World Scenery: Rural Bangladesh Environment
+    // 8. World Scenery: Rural Bangladesh Environment & Chadabaj Stoppages
     this.initVillageEnvironment();
   }
 
@@ -421,7 +465,7 @@ export class DriverScene3D {
     this.scrollingDecorations.push(this.teaStall);
 
     // 5. Village Tin Houses along the Right Edge
-    const houseDistances = [-160, -280, -410];
+    const houseDistances = [-140, -260, -420];
     houseDistances.forEach((z, idx) => {
       const house = buildVillageTinHouse3D();
       house.position.set(16 + (idx % 2) * 3, 0, z);
@@ -431,22 +475,35 @@ export class DriverScene3D {
 
     // 6. Canal Culvert Bridge across Road
     this.canalBridge = buildCanalBridgeSegment3D(11.2, 22);
-    this.canalBridge.position.set(0, 0, -220);
+    this.canalBridge.position.set(0, 0, -290);
     this.scene.add(this.canalBridge);
     this.scrollingDecorations.push(this.canalBridge);
 
-    // 7. Directional Chevron Arrows (>>>) Hovering ahead (as in reference photo!)
+    // 7. Directional Chevron Arrows (>>>) Hovering ahead
     this.directionalChevrons = buildDirectionalChevrons3D();
     this.directionalChevrons.position.set(0, 1.8, -48);
     this.scene.add(this.directionalChevrons);
 
-    // 8. Celebratory Finish Line Arch Gantry at Gated Destination
+    // 8. 🛑 AUTHENTIC CHADABAJ STOPPAGES (চাঁদাবাজ চেকপোস্ট) ACROSS THE ROAD!
+    // Stoppage 1: গ্রামীণ মোড় চাঁদা চেকপোস্ট (Spaced at Z = -180m)
+    const stoppage1 = buildChadabajStoppage3D(11.0, '১ নং গ্রামীণ মোড় চাঁদা চেকপোস্ট');
+    stoppage1.position.set(0, 0, -180);
+    this.scene.add(stoppage1);
+    this.chadabajStoppages.push(stoppage1);
+
+    // Stoppage 2: বাজার সমিতি চাঁদা চেকপোস্ট (Spaced at Z = -380m)
+    const stoppage2 = buildChadabajStoppage3D(11.0, '২ নং বাজার সমিতি চাঁদা চেকপোস্ট');
+    stoppage2.position.set(0, 0, -380);
+    this.scene.add(stoppage2);
+    this.chadabajStoppages.push(stoppage2);
+
+    // 9. Celebratory Finish Line Arch Gantry at Gated Destination
     this.finishLineArch = buildFinishLine3D(11.2);
     this.finishLineArch.position.set(0, 0, -560);
     this.scene.add(this.finishLineArch);
     this.scrollingDecorations.push(this.finishLineArch);
 
-    // 9. Natural Trees & Vegetation (Coconuts, Bananas, Palms)
+    // 10. Natural Trees & Vegetation (Coconuts, Bananas, Palms)
     for (let z = 10; z > -500; z -= 14) {
       this.spawnVegetationProp(z);
     }
@@ -454,7 +511,6 @@ export class DriverScene3D {
 
   spawnVegetationProp(z) {
     const isLeft = Math.random() > 0.45;
-    // Keep vegetation safely off the asphalt road!
     const x = isLeft ? -(9.2 + Math.random() * 14) : (10.5 + Math.random() * 16);
 
     const r = Math.random();
@@ -541,6 +597,14 @@ export class DriverScene3D {
       window.addEventListener('touchend', onEnd);
     }
 
+    // Camera Switch button
+    const camBtn = this.container.querySelector('#btn-sim-cam');
+    if (camBtn) {
+      camBtn.addEventListener('click', () => {
+        this.toggleCameraAngle();
+      });
+    }
+
     // Pause button and modal controls
     const pauseBtn = this.container.querySelector('#btn-sim-pause');
     const pauseModal = this.container.querySelector('#sim-pause-modal');
@@ -578,6 +642,90 @@ export class DriverScene3D {
         this.engine.changeScene('splash');
       });
     }
+
+    // Bind Chadabaj Modal Choices
+    this.bindChadabajChoices();
+  }
+
+  toggleCameraAngle() {
+    this.currentCamIndex = (this.currentCamIndex + 1) % this.cameraModes.length;
+    const mode = this.cameraModes[this.currentCamIndex];
+
+    const toast = document.createElement('div');
+    toast.className = 'coin-popup';
+    toast.style.left = '50%';
+    toast.style.top = '22%';
+    toast.textContent = `🎥 ${mode.name}`;
+    this.container.appendChild(toast);
+    setTimeout(() => toast.remove(), 1100);
+
+    sound.playClick();
+  }
+
+  bindChadabajChoices() {
+    const modal = this.container.querySelector('#sim-chadabaj-modal');
+    const payBtn = this.container.querySelector('#btn-choice-pay');
+    const namedropBtn = this.container.querySelector('#btn-choice-namedrop');
+    const escapeBtn = this.container.querySelector('#btn-choice-escape');
+
+    const resolveEncounter = (bribeAmt, titleMsg, subtitleMsg) => {
+      this.totalBribePaid += bribeAmt;
+      this.isEncounterModalActive = false;
+
+      if (this.activeStoppageEncounter) {
+        this.activeStoppageEncounter.userData.isOpen = true;
+      }
+
+      modal.style.display = 'none';
+      modal.classList.remove('active');
+
+      const toast = document.createElement('div');
+      toast.className = 'coin-popup';
+      toast.style.left = '50%';
+      toast.style.top = '30%';
+      toast.style.fontSize = '1.35rem';
+      toast.textContent = titleMsg;
+      this.container.appendChild(toast);
+      setTimeout(() => toast.remove(), 1400);
+
+      // Resume motion
+      this.speed = Math.max(20, this.cruiseSpeed * 0.6);
+      this.keyState.forward = true;
+      setTimeout(() => {
+        this.activeStoppageEncounter = null;
+      }, 2500);
+    };
+
+    // 1. Pay Bribe (৳৫০)
+    if (payBtn) {
+      payBtn.addEventListener('click', () => {
+        sound.playCoin();
+        resolveEncounter(50, '💸 ৫০ টাকা চাঁদা পরিশোধ! গেট উন্মুক্ত!', 'রসিদ সংগ্রহ করা হয়েছে');
+      });
+    }
+
+    // 2. Name-drop Local Political Leader (60% Free VIP pass, 40% Backfires!)
+    if (namedropBtn) {
+      namedropBtn.addEventListener('click', () => {
+        const isSuccess = Math.random() < 0.65;
+        if (isSuccess) {
+          sound.playSuccess();
+          resolveEncounter(0, '👑 "আরে ভাই আগে বলবেন তো! যান যান!" (ফ্রি পারাপার!)', 'নেতার নামে সালাম পেয়ে পার');
+        } else {
+          sound.playWrong();
+          resolveEncounter(100, '🚨 "নেতার পাওয়ার তো শেষ! ডাবল জরিমানা ৳১০০!"', 'ডাবল চাঁদা খেসারত');
+        }
+      });
+    }
+
+    // 3. Speed & Escape (Smash through the barrier!)
+    if (escapeBtn) {
+      escapeBtn.addEventListener('click', () => {
+        sound.playTruckHornSFX();
+        this.escapesCount++;
+        resolveEncounter(0, '⚡ ব্যারিকেড ভেঙে ধোঁয়া উড়িয়ে পার! "ওই ধর ধর!"', 'চাঁদাবাজদের ফাঁকি দিয়ে পলায়ন');
+      });
+    }
   }
 
   handleKeyDown(e) {
@@ -587,7 +735,13 @@ export class DriverScene3D {
       return;
     }
 
-    if (this.isPaused) return;
+    // Camera Switch (Key 'C')
+    if (e.key === 'c' || e.key === 'C') {
+      this.toggleCameraAngle();
+      return;
+    }
+
+    if (this.isPaused || this.isEncounterModalActive) return;
 
     // Forward (Accelerate: W, ArrowUp)
     if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
@@ -671,7 +825,9 @@ export class DriverScene3D {
     // 1. Calculate Target Speed with Smooth Acceleration Curve
     let targetSpeed = 0;
 
-    if (this.keyState.forward) {
+    if (this.isEncounterModalActive) {
+      targetSpeed = 0; // Forced stop during extortion dialog
+    } else if (this.keyState.forward) {
       this.isTimerRunning = true;
       targetSpeed = this.keyState.boost ? this.boostSpeed : this.cruiseSpeed;
     } else if (this.keyState.backward) {
@@ -707,7 +863,7 @@ export class DriverScene3D {
     }
 
     // 2. Stopwatch Timer Tick (Starts on first acceleration)
-    if (this.isTimerRunning && !this.delivered) {
+    if (this.isTimerRunning && !this.delivered && !this.isEncounterModalActive) {
       this.elapsedSeconds += dt;
       const mins = Math.floor(this.elapsedSeconds / 60);
       const secs = Math.floor(this.elapsedSeconds % 60);
@@ -725,12 +881,10 @@ export class DriverScene3D {
     const displaySpeed = Math.round(Math.abs(this.speed));
     if (speedEl) speedEl.textContent = displaySpeed;
 
-    // Rotate needle from 135deg (0 km/h) to 405deg (80 km/h)
     const speedRatio = Math.min(1, displaySpeed / 75);
     const needleAngle = 135 + speedRatio * 270;
     if (needleEl) needleEl.setAttribute('transform', `rotate(${needleAngle} 80 80)`);
 
-    // Dash offset for arc: full circumference is 292, 0% is 292, 100% is 73
     const targetOffset = 292 - (speedRatio * 219);
     if (arcEl) arcEl.setAttribute('stroke-dashoffset', targetOffset);
 
@@ -739,26 +893,23 @@ export class DriverScene3D {
     if (this.keyState.left) steerTarget = -1;
     if (this.keyState.right) steerTarget = 1;
 
-    // Interpolate steer angle towards steer target
     this.steerAngle += (steerTarget - this.steerAngle) * 9.5 * dt;
 
-    // Rotate Steering Wheel Overlay in Bottom-Left
     const wheelContainer = this.container.querySelector('#sim-steering-wheel');
     if (wheelContainer) {
       wheelContainer.style.transform = `rotate(${this.steerAngle * 54}deg)`;
     }
 
-    // Move Vehicle laterally across the road
+    // Lateral displacement
     const lateralSpeed = this.steerAngle * (Math.abs(this.speed) / 45) * 6.8 * dt;
     this.truckX = Math.max(-this.roadHalfWidth, Math.min(this.roadHalfWidth, this.truckX + lateralSpeed));
 
-    // Smooth chassis visual tilt & steering fork
+    // Chassis visual roll & yaw
     const dx = this.truckX - this.truck.position.x;
     this.truck.position.x += dx * 0.22;
     this.truck.rotation.z = -this.steerAngle * 0.08; // Lean into turn
     this.truck.rotation.y = Math.PI - this.steerAngle * 0.12; // Yaw
 
-    // Front fork steering angle
     if (this.truck.userData.frontSteerGroup) {
       this.truck.userData.frontSteerGroup.rotation.y = -this.steerAngle * 0.45;
     }
@@ -771,16 +922,13 @@ export class DriverScene3D {
       });
     }
 
-    // 5. Professional Chase Camera Following with Subtle Dynamic Lag
+    // 5. CAMERA FOLLOWING (Smooth transition according to active camera angle)
+    const currentCamConfig = this.cameraModes[this.currentCamIndex];
     const targetCamX = this.truck.position.x * 0.42;
     this.camera.position.x += (targetCamX - this.camera.position.x) * 0.15;
-    this.camera.position.y = 2.45 + (isOffRoad ? (Math.random() - 0.5) * 0.04 : 0); // Rumble on off-road
-    this.camera.lookAt(this.truck.position.x * 0.52, 1.48, -14.0);
-
-    // Dynamic FOV widening on high speed
-    const targetFov = 54 + (Math.abs(this.speed) / 75) * 6;
-    this.camera.fov += (targetFov - this.camera.fov) * 0.1;
-    this.camera.updateProjectionMatrix();
+    this.camera.position.y += (currentCamConfig.y - this.camera.position.y) * 0.1;
+    this.camera.position.z += (currentCamConfig.z - this.camera.position.z) * 0.1;
+    this.camera.lookAt(this.truck.position.x * 0.52, currentCamConfig.lookY, currentCamConfig.lookZ);
 
     // 6. Trip Distance & Checkpoints
     if (this.speed > 0) {
@@ -788,7 +936,6 @@ export class DriverScene3D {
       this.remainingDistanceKm = Math.max(0, this.remainingDistanceKm - distStep);
     }
 
-    // Checkpoint Triggering
     const passedRatio = 1 - (this.remainingDistanceKm / this.totalDistanceKm);
     const newCheckpoint = Math.min(5, Math.max(1, Math.floor(passedRatio * 5) + 1));
     if (newCheckpoint > this.currentCheckpointIndex) {
@@ -806,7 +953,7 @@ export class DriverScene3D {
       }
     });
 
-    // 8. World Scrolling: Roadside Fences, Electric Poles, & Scenery
+    // 8. World Scrolling: Fences, Electric Poles & Scenery
     this.bambooFences.forEach(fence => {
       fence.position.z += worldSpeed;
       if (fence.position.z > 50) fence.position.z -= 520;
@@ -822,6 +969,61 @@ export class DriverScene3D {
       if (deco.position.z > 60) deco.position.z -= 600;
     });
 
+    // 9. CHADABAJ STOPPAGE (চাঁদাবাজ চেকপোস্ট) DETECTION & INTERACTION
+    let nearAnyStoppage = false;
+    this.chadabajStoppages.forEach(stoppage => {
+      stoppage.position.z += worldSpeed;
+
+      // Animate warning light blink
+      if (stoppage.userData.redLight) {
+        stoppage.userData.redLight.visible = Math.floor(performance.now() * 0.004) % 2 === 0;
+      }
+
+      // Animate boom arm opening upwards if cleared
+      if (stoppage.userData.isOpen && stoppage.userData.boomPivot) {
+        stoppage.userData.boomPivot.rotation.z += (Math.PI * 0.45 - stoppage.userData.boomPivot.rotation.z) * 0.12;
+      }
+
+      // Detection zone: Approaching stoppage
+      const distToStoppage = stoppage.position.z; // negative value ahead, 0 is right at the tempo
+      if (distToStoppage > -45 && distToStoppage < 5 && !stoppage.userData.isOpen) {
+        nearAnyStoppage = true;
+
+        // Pull up to stoppage: trigger extortion encounter!
+        if (distToStoppage > -12 && distToStoppage < 2 && !this.isEncounterModalActive) {
+          // If player is on the far shoulder (evading around the post), let them slip past!
+          if (Math.abs(this.truckX) > 3.85 && this.speed > 35) {
+            // Dodged through the edge!
+            sound.playTruckHornSFX();
+            stoppage.userData.isOpen = true;
+            const toast = document.createElement('div');
+            toast.className = 'coin-popup';
+            toast.style.left = '50%';
+            toast.style.top = '30%';
+            toast.textContent = '💨 সাইড দিয়ে ফাঁকি দিয়ে বের হয়ে গেছেন!';
+            this.container.appendChild(toast);
+            setTimeout(() => toast.remove(), 1200);
+          } else {
+            // Blocked by barrier! Trigger modal
+            this.triggerChadabajEncounter(stoppage);
+          }
+        }
+      }
+
+      // Reset stoppage loop when it goes far behind
+      if (stoppage.position.z > 80) {
+        stoppage.position.z -= 440;
+        stoppage.userData.isOpen = false;
+        if (stoppage.userData.boomPivot) stoppage.userData.boomPivot.rotation.z = 0;
+      }
+    });
+
+    // Toggle approaching warning
+    const warnEl = this.container.querySelector('#sim-stoppage-warn');
+    if (warnEl) {
+      warnEl.style.display = nearAnyStoppage && !this.isEncounterModalActive ? 'block' : 'none';
+    }
+
     // Animate Hovering Chevron Arrows
     if (this.directionalChevrons) {
       this.directionalChevrons.position.z += worldSpeed;
@@ -831,7 +1033,7 @@ export class DriverScene3D {
       this.directionalChevrons.position.y = 1.8 + Math.sin(performance.now() * 0.005) * 0.15;
     }
 
-    // Scroll Trees & Vegetation
+    // Scroll Trees
     for (let i = this.roadsideProps.length - 1; i >= 0; i--) {
       const prop = this.roadsideProps[i];
       prop.position.z += worldSpeed;
@@ -842,9 +1044,27 @@ export class DriverScene3D {
       }
     }
 
-    // 9. Finish Line Detection
+    // 10. Finish Line Detection
     if (this.remainingDistanceKm <= 0.05 && !this.delivered) {
       this.reachFinishLine();
+    }
+  }
+
+  triggerChadabajEncounter(stoppage) {
+    this.isEncounterModalActive = true;
+    this.activeStoppageEncounter = stoppage;
+    this.speed = 0;
+
+    sound.playHornSound();
+    sound.vibrate([100, 50, 100]);
+
+    const modal = this.container.querySelector('#sim-chadabaj-modal');
+    const titleEl = this.container.querySelector('#stoppage-title');
+    if (titleEl) titleEl.textContent = `🛑 ${stoppage.userData.title || 'চাঁদাবাজ চেকপোস্ট'}`;
+
+    if (modal) {
+      modal.style.display = 'flex';
+      requestAnimationFrame(() => modal.classList.add('active'));
     }
   }
 
@@ -878,7 +1098,7 @@ export class DriverScene3D {
     ctx.fillStyle = '#0F172A';
     ctx.fillRect(0, 0, w, h);
 
-    // Draw Smooth S-Curved Road Track
+    // S-Curved Road Track
     ctx.strokeStyle = '#FFFFFF';
     ctx.lineWidth = 6;
     ctx.lineCap = 'round';
@@ -886,11 +1106,6 @@ export class DriverScene3D {
     ctx.moveTo(w * 0.5, h * 0.92);
     ctx.bezierCurveTo(w * 0.25, h * 0.65, w * 0.85, h * 0.45, w * 0.7, h * 0.12);
     ctx.stroke();
-
-    // Checkpoints on map
-    const cpPoints = [
-      { t: 0.2 }, { t: 0.4 }, { t: 0.6 }, { t: 0.8 }, { t: 0.98 }
-    ];
 
     const getBezierPoint = (t) => {
       const p0 = { x: w * 0.5, y: h * 0.92 };
@@ -908,12 +1123,11 @@ export class DriverScene3D {
       return { x, y };
     };
 
-    cpPoints.forEach((cp, idx) => {
-      const pt = getBezierPoint(cp.t);
-      ctx.fillStyle = (idx + 1) < this.currentCheckpointIndex ? '#10B981' : '#F59E0B';
-      ctx.beginPath();
-      ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
-      ctx.fill();
+    // Stoppages on Mini-Map (red barrier icons)
+    [0.35, 0.70].forEach(stoppageT => {
+      const pt = getBezierPoint(stoppageT);
+      ctx.fillStyle = '#EF4444';
+      ctx.fillRect(pt.x - 3, pt.y - 3, 6, 6);
     });
 
     // Checkered Flag at end of track
@@ -926,7 +1140,6 @@ export class DriverScene3D {
 
     ctx.save();
     ctx.translate(playerPt.x, playerPt.y);
-    // Red navigation triangle
     ctx.fillStyle = '#EF4444';
     ctx.beginPath();
     ctx.moveTo(0, -6);
@@ -953,7 +1166,6 @@ export class DriverScene3D {
     sound.playSuccess();
     sound.vibrate([120, 60, 180]);
 
-    // Confetti Fireworks Blast
     try {
       confetti({
         particleCount: 120,
@@ -969,7 +1181,10 @@ export class DriverScene3D {
     const hundredths = Math.floor((this.elapsedSeconds * 100) % 100);
     const finalTimeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`;
 
-    // Professional Finish Celebration Modal
+    const netProfit = Math.max(0, 5000 - this.totalBribePaid);
+    const priceHikePerKg = (this.totalBribePaid / 1000).toFixed(1);
+
+    // Finish Celebration Modal
     const arrivalModal = document.createElement('div');
     arrivalModal.className = 'modal-overlay active';
     arrivalModal.style.zIndex = '150';
@@ -977,34 +1192,34 @@ export class DriverScene3D {
       <div class="modal-dialog" style="max-width: 480px; text-align: center; border-color: #3F9B5B;">
         <div style="font-size: 3.5rem; margin-bottom: 6px;">🏁 🛺 🥬</div>
         <h2 style="color: #3F9B5B; font-size: 1.85rem; font-weight: 900; margin-bottom: 4px;">
-          যাত্রা সম্পন্ন! বিজয় ফটকে আগমন
+          কাওরান বাজারে সফল আগমন!
         </h2>
         <p style="font-size: 0.98rem; color: #444; line-height: 1.5; margin-bottom: 16px;">
-          শ্যামল পল্লীগ্রামের রাস্তা, পুকুরপাড় ও টং দোকান পেরিয়ে <strong>১,০০০ কেজি তাজা সবজিভর্তি টেম্পো</strong> অক্ষত অবস্থায় গন্তব্যে পৌঁছেছে!
+          চাঁদাবাজদের ব্যারিকেড ও গ্রামীণ পথ সফলভাবে পাড়ি দিয়ে <strong>১,০০০ কেজি তাজা সবজিভর্তি টেম্পো</strong> গন্তব্যে পৌঁছেছে!
         </p>
 
         <!-- Race Simulator Stats Box -->
         <div style="background: rgba(63,155,91,0.12); border: 2px solid #3F9B5B; border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; text-align: left;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span>⏱️ সমাপ্তি সময়:</span>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 7px;">
+            <span>⏱️ মোট সময়:</span>
             <strong style="color: #1A110B; font-size: 1.15rem;">${finalTimeStr}</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span>📍 চেকপয়েন্ট সম্পন্ন:</span>
-            <strong style="color: #2E86AB; font-size: 1.1rem;">৫ / ৫ (১০০%)</strong>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 7px;">
+            <span>🛑 রাস্তায় মোট চাঁদা দেওয়া হয়েছে:</span>
+            <strong style="color: #C8442B; font-size: 1.15rem;">${formatTaka(this.totalBribePaid)}</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span>⚡ সর্বোচ্চ গতি:</span>
-            <strong style="color: #F5A623;">${toBengaliNumber(this.maxSpeedReached || 48)} কিমি/ঘণ্টা</strong>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 7px;">
+            <span>⚡ সফল পলায়ন / ফাঁকি:</span>
+            <strong style="color: #2E86AB;">${toBengaliNumber(this.escapesCount)} বার</strong>
           </div>
           <div style="display: flex; justify-content: space-between; border-top: 1.5px dashed rgba(0,0,0,0.15); padding-top: 8px;">
-            <span>💰 উপার্জিত ভাড়া:</span>
-            <strong style="color: #3F9B5B; font-size: 1.25rem;">৳৫,০০০</strong>
+            <span>💰 ড্রাইভারের নিট উপার্জন:</span>
+            <strong style="color: #3F9B5B; font-size: 1.25rem;">${formatTaka(netProfit)}</strong>
           </div>
         </div>
 
         <button id="btn-finish-delivery" class="btn btn-green" style="font-size: 1.25rem; padding: 14px; width: 100%;">
-          🎉 হিসাব ও বিস্তারিত রসিদ দেখুন ➔
+          🎉 ব্যঙ্গাত্মক রসিদ ও সারসংক্ষেপ দেখুন ➔
         </button>
       </div>
     `;
@@ -1013,10 +1228,10 @@ export class DriverScene3D {
     arrivalModal.querySelector('#btn-finish-delivery').addEventListener('click', () => {
       this.engine.gameState.driverResult = {
         deliveredKg: this.vegetablesKg,
-        totalBribePaid: 0,
-        profit: 5000,
+        totalBribePaid: this.totalBribePaid,
+        profit: netProfit,
         truckHealth: 100,
-        priceHikePerKg: '0.0',
+        priceHikePerKg: priceHikePerKg,
         finalTime: finalTimeStr,
         success: true
       };
