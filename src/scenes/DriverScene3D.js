@@ -120,9 +120,9 @@ export class DriverScene3D {
     this.handleResize = this.handleResize.bind(this);
   }
 
-  // Returns dynamic X curvature of the road at distance Z
+  // Road is straight and continuous
   getRoadCurveAt(z) {
-    return Math.sin((z - this.distanceTravelled) * 0.009) * 4.6;
+    return 0;
   }
 
   render(container) {
@@ -431,12 +431,12 @@ export class DriverScene3D {
     });
 
     const segmentCount = 6;
-    const segmentLength = 100;
+    const segmentLength = 100.2; // Overlap slightly to guarantee zero hairline seams
     for (let i = 0; i < segmentCount; i++) {
       const roadGeo = new THREE.PlaneGeometry(11.0, segmentLength);
       const roadMesh = new THREE.Mesh(roadGeo, roadMat);
       roadMesh.rotation.x = -Math.PI / 2;
-      roadMesh.position.set(0, 0.01, -i * segmentLength);
+      roadMesh.position.set(0, 0.01, -i * 100.0);
       roadMesh.receiveShadow = true;
       this.scene.add(roadMesh);
       this.roadSegments.push(roadMesh);
@@ -1012,17 +1012,15 @@ export class DriverScene3D {
       wheelContainer.style.transform = `rotate(${this.steerAngle * 65}deg)`;
     }
 
-    // Move Vehicle laterally across lanes
-    const lateralSpeed = this.steerAngle * (Math.abs(this.speed) / 45) * 7.5 * dt;
+    // Move Vehicle laterally across lanes (Smooth left and right steering)
+    const steerSpeedFactor = Math.max(0.35, Math.abs(this.speed) / 38);
+    const lateralSpeed = this.steerAngle * steerSpeedFactor * 8.5 * dt;
     this.truckX = Math.max(-this.roadHalfWidth, Math.min(this.roadHalfWidth, this.truckX + lateralSpeed));
 
-    // Calculate dynamic road center curve at vehicle position (z = 0)
-    const roadCurveAtOrigin = this.getRoadCurveAt(0);
-
-    // Vehicle actual world position: aligns to road curve + lane offset
-    this.truck.position.x = roadCurveAtOrigin + this.truckX;
+    // Vehicle actual world position (Player can turn and navigate lanes freely)
+    this.truck.position.x = this.truckX;
     this.truck.rotation.z = -this.steerAngle * 0.12; // Body roll into turn
-    this.truck.rotation.y = Math.PI - this.steerAngle * 0.32; // Yaw turning angle
+    this.truck.rotation.y = Math.PI - this.steerAngle * 0.35; // Yaw turning angle
 
     if (this.truck.userData.frontSteerGroup) {
       this.truck.userData.frontSteerGroup.rotation.y = -this.steerAngle * 0.6;
@@ -1042,7 +1040,7 @@ export class DriverScene3D {
     this.camera.position.y += (currentCamConfig.y - this.camera.position.y) * 0.1;
     this.camera.position.z += (currentCamConfig.z - this.camera.position.z) * 0.1;
     this.camera.lookAt(
-      this.truck.position.x * 0.55 + this.getRoadCurveAt(-16) * 0.4,
+      this.truck.position.x * 0.35,
       currentCamConfig.lookY,
       currentCamConfig.lookZ
     );
@@ -1060,51 +1058,50 @@ export class DriverScene3D {
       this.triggerCheckpointPassed(this.currentCheckpointIndex);
     }
 
-    // 7. Dynamic Curving Road Segments (S-Curve Road Left & Right)
+    // 7. Continuous Seamless Road Segments (Unbroken, perfect alignment at x = 0)
     this.roadSegments.forEach(seg => {
       seg.position.z += worldSpeed;
-      if (seg.position.z > 60) {
+      if (seg.position.z > 50) {
         seg.position.z -= 600;
-      } else if (seg.position.z < -540) {
+      } else if (seg.position.z < -550) {
         seg.position.z += 600;
       }
-      // Apply curve to segment
-      seg.position.x = this.getRoadCurveAt(seg.position.z);
+      seg.position.x = 0;
     });
 
-    // 8. Scrolling Roadside Props with Road Curvature
+    // 8. Scrolling Roadside Props
     this.bambooFences.forEach(fence => {
       fence.position.z += worldSpeed;
       if (fence.position.z > 50) fence.position.z -= 520;
-      fence.position.x = fence.userData.baseX + this.getRoadCurveAt(fence.position.z);
+      fence.position.x = fence.userData.baseX;
     });
 
     this.electricPoles.forEach(pole => {
       pole.position.z += worldSpeed;
       if (pole.position.z > 50) pole.position.z -= 540;
-      pole.position.x = pole.userData.baseX + this.getRoadCurveAt(pole.position.z);
+      pole.position.x = pole.userData.baseX;
     });
 
     this.scrollingDecorations.forEach(deco => {
       deco.position.z += worldSpeed;
       if (deco.position.z > 60) deco.position.z -= 600;
-      deco.position.x = (deco.userData.baseX || 0) + this.getRoadCurveAt(deco.position.z);
+      deco.position.x = deco.userData.baseX || 0;
     });
 
     // Roadside parked vehicles and cows
     this.roadsideParkedProps.forEach(prop => {
       prop.position.z += worldSpeed;
       if (prop.position.z > 50) prop.position.z -= 520;
-      prop.position.x = prop.userData.baseX + this.getRoadCurveAt(prop.position.z);
+      prop.position.x = prop.userData.baseX;
     });
 
-    // Animate Directional Chevron Arrows
+    // Directional Chevron Arrows (Navigation markers)
     if (this.directionalChevrons) {
       this.directionalChevrons.position.z += worldSpeed;
       if (this.directionalChevrons.position.z > 25) {
         this.directionalChevrons.position.z = -220;
       }
-      this.directionalChevrons.position.x = this.getRoadCurveAt(this.directionalChevrons.position.z);
+      this.directionalChevrons.position.x = 0;
       this.directionalChevrons.position.y = 1.8 + Math.sin(performance.now() * 0.005) * 0.15;
     }
 
@@ -1117,7 +1114,7 @@ export class DriverScene3D {
         this.roadsideProps.splice(i, 1);
         this.spawnVegetationProp(-480);
       } else {
-        prop.position.x = prop.userData.baseX + this.getRoadCurveAt(prop.position.z);
+        prop.position.x = prop.userData.baseX;
       }
     }
 
@@ -1130,8 +1127,8 @@ export class DriverScene3D {
         veh.position.z += worldSpeed + (veh.userData.speedRel * 0.42 * dt * 10);
       }
 
-      // Keep aligned to the curving lane
-      veh.position.x = veh.userData.laneX + this.getRoadCurveAt(veh.position.z);
+      // Lane position
+      veh.position.x = veh.userData.laneX;
 
       // Loop traffic when passing behind or getting too far ahead
       if (veh.position.z > 40) {
@@ -1173,8 +1170,8 @@ export class DriverScene3D {
         this.chadabajStoppage.position.z += worldSpeed;
       }
 
-      // Align stoppage with road curve
-      this.chadabajStoppage.position.x = this.getRoadCurveAt(this.chadabajStoppage.position.z);
+      // Stoppage spans across the road at center
+      this.chadabajStoppage.position.x = 0;
 
       // Flashing beacon light
       if (this.chadabajStoppage.userData.redLight) {
