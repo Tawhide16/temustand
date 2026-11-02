@@ -1,101 +1,35 @@
 import * as THREE from 'three';
+import confetti from 'canvas-confetti';
 import { sound } from '../systems/audio.js';
 import { toBengaliNumber, formatTaka } from '../systems/utils.js';
 import {
-  buildTruck3D,
-  buildPalmTree3D,
+  buildTempoRickshaw3D,
+  buildBambooFence3D,
+  buildElectricPoleWithWires3D,
+  buildVillageTinHouse3D,
+  buildVillageTeaStallEnhanced3D,
+  buildVillagePondSide3D,
+  buildCanalBridgeSegment3D,
+  buildDirectionalChevrons3D,
+  buildVillageCoconutTree3D,
+  buildFinishLine3D,
   buildBananaTree3D,
-  buildHut3D,
-  buildTeaStall3D,
-  buildCurzonHall3D,
-  buildMetroViaductSegment3D,
-  buildMetroTrain3D,
-  buildKarnaphuliTunnelSegment3D,
-  buildVillageCluster3D,
-  buildCitySkyscraper3D,
-  buildBillboard3D,
-  buildMarketDestination3D,
-  buildCNG3D,
-  buildBus3D
+  buildPalmTree3D
 } from '../systems/models3d.js';
-import { createRoadTexture } from '../systems/textureGenerator.js';
+import {
+  createVillageAsphaltRoadTexture,
+  createRicePaddyTexture
+} from '../systems/textureGenerator.js';
 
 // =========================================================================
-// 🗺️ 6 EXACT SCENERIES & ROUTE ZONES (VILLAGE ➔ CITY ➔ UNIVERSITY ➔ TUNNEL ➔ RAIL ➔ MARKET)
+// 🌾 BANGLADESHI VILLAGE ROUTE CHECKPOINTS
 // =========================================================================
-export const ROUTE_ZONES = [
-  {
-    id: 'village',
-    minKm: 10.0,
-    maxKm: 12.0,
-    name: '১. পল্লীগ্রাম (Village)',
-    icon: '🌾',
-    subtitle: 'শান্ত শ্যামল গ্রামবাংলা, কুঁড়েঘর ও চায়ের টং দোকান',
-    skyColor: '#96BA9F',
-    fogDensity: 0.006,
-    groundColor: '#4C7A32',
-    isTunnel: false
-  },
-  {
-    id: 'city',
-    minKm: 8.0,
-    maxKm: 10.0,
-    name: '২. আধুনিক শহর (City)',
-    icon: '🏙️',
-    subtitle: 'উঁচু স্কাইস্ক্র্যাপার, বাণিজ্যিক টাওয়ার ও রঙিন বিলবোর্ড',
-    skyColor: '#6DA3D6',
-    fogDensity: 0.006,
-    groundColor: '#3D4952',
-    isTunnel: false
-  },
-  {
-    id: 'university',
-    minKm: 6.0,
-    maxKm: 8.0,
-    name: '৩. বিশ্ববিদ্যালয় (University)',
-    icon: '🏫',
-    subtitle: 'ঐতিহাসিক ঢাকা বিশ্ববিদ্যালয় ও লাল ইটের কার্জন হল',
-    skyColor: '#8E9BAC',
-    fogDensity: 0.007,
-    groundColor: '#455A44',
-    isTunnel: false
-  },
-  {
-    id: 'tunnel',
-    minKm: 4.0,
-    maxKm: 6.0,
-    name: '৪. আন্ডারওয়াটার টানেল (Tunnel)',
-    icon: '🚇',
-    subtitle: 'নদীর তলদেশের আধুনিক টানেল ও আলোকিত নিয়ন সুড়ঙ্গ',
-    skyColor: '#101418',
-    fogDensity: 0.016,
-    groundColor: '#1A1E24',
-    isTunnel: true
-  },
-  {
-    id: 'rail',
-    minKm: 1.5,
-    maxKm: 4.0,
-    name: '৫. রেল ও মেট্রোরেল (Rail)',
-    icon: '🚊',
-    subtitle: 'এলিভেটেড ভায়াডাক্ট ও মাথার উপর দিয়ে চলমান মেট্রোরেল',
-    skyColor: '#8096A8',
-    fogDensity: 0.007,
-    groundColor: '#3F5244',
-    isTunnel: false
-  },
-  {
-    id: 'bajar',
-    minKm: 0.0,
-    maxKm: 1.5,
-    name: '৬. কাওরান বাজার আড়ৎ (Market Delivery)',
-    icon: '🥬',
-    subtitle: 'গন্তব্য: পাইকারি সবজির আড়ৎ — মাল খালাস পয়েন্ট',
-    skyColor: '#E6A25D', // Golden arrival glow
-    fogDensity: 0.006,
-    groundColor: '#45382B',
-    isTunnel: false
-  }
+export const VILLAGE_CHECKPOINTS = [
+  { id: 1, name: 'সবুজ ধানক্ষেত ও নারকেল বাগান', targetDist: 4.0 },
+  { id: 2, name: 'শান্ত পুকুর ও খালের ব্রিজ', targetDist: 3.0 },
+  { id: 3, name: 'পল্লী বসতি ও মাটির ঘর', targetDist: 2.0 },
+  { id: 4, name: 'গ্রামের হাট ও চায়ের টং দোকান', targetDist: 1.0 },
+  { id: 5, name: 'ছায়াঘেরা গ্রাম্য পথ ও বিজয় ফটক', targetDist: 0.0 }
 ];
 
 export class DriverScene3D {
@@ -109,53 +43,54 @@ export class DriverScene3D {
     this.animId = null;
 
     // Trip & Stats
-    this.totalTripKm = 12.0;
-    this.distanceKm = 12.0;
-    this.vegetablesKg = 1000;
+    this.totalDistanceKm = 5.0;
+    this.remainingDistanceKm = 5.0;
+    this.currentCheckpointIndex = 1;
+    this.totalCheckpoints = 5;
     this.delivered = false;
+    this.vegetablesKg = 1000;
+    this.maxSpeedReached = 0;
 
-    // Driving Physics & Speed (Stationary until Up arrow / Forward is pressed!)
-    this.speed = 0; // Starts stopped (0 km/h)
-    this.baseSpeed = 0;
-    this.cruiseSpeed = 75; // Forward driving speed
-    this.boostSpeed = 135; // Turbo boost speed
-    this.reverseSpeed = -25;
-    this.minSpeed = -30;
-    this.maxSpeed = 140;
-    this.isBoostActive = false;
+    // Timer (Milliseconds stopwatch)
+    this.elapsedSeconds = 0;
+    this.isTimerRunning = false;
+    this.isPaused = false;
 
-    // Continuous 4-way Control State (Keyboard / UI Buttons)
+    // Vehicle Driving Physics
+    this.speed = 0; // KM/H
+    this.cruiseSpeed = 48; // Max normal speed for tempo
+    this.boostSpeed = 70; // Turbo boost
+    this.reverseSpeed = -16;
+    this.truckX = 0; // Lateral position (-4.2m to +4.2m)
+    this.steerAngle = 0; // Smoothed steering angle (-1 to 1)
+    this.roadHalfWidth = 4.3;
+
+    // Continuous 4-way Control State
     this.keyState = {
       forward: false,
       backward: false,
       left: false,
       right: false,
-      boost: false
+      boost: false,
+      handbrake: false
     };
 
-    // Free Steering (Smooth lateral positioning across the road)
-    this.truckX = 0; // -4.2 to 4.2
-    this.truckZ = 0;
-    this.roadHalfWidth = 4.2;
-
-    // World & Environment
+    // Environment & World
     this.roadSegments = [];
     this.roadsideProps = [];
-    this.landmarkSuperstructures = [];
-    this.currentZone = ROUTE_ZONES[0];
-    this.lastAnnouncedZoneId = null;
+    this.scrollingDecorations = [];
+    this.electricPoles = [];
+    this.bambooFences = [];
+    this.directionalChevrons = null;
+    this.finishLineArch = null;
+    this.canalBridge = null;
+    this.roadCurveOffset = 0;
 
-    // Active Animated Props
-    this.movingMetroTrain = null;
-    this.curzonHall = null;
-    this.marketGate = null;
+    // Audio Motor Synth
+    this.motorOsc = null;
+    this.motorGain = null;
 
-    // Environmental Lights
-    this.groundMesh = null;
-    this.ambientLight = null;
-    this.sunLight = null;
-    this.tunnelLight = null;
-
+    // Bindings
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleKeyUp = this.handleKeyUp.bind(this);
     this.handleResize = this.handleResize.bind(this);
@@ -164,112 +99,196 @@ export class DriverScene3D {
   render(container) {
     this.container = container;
     const char = this.engine.gameState.character || { name: 'ওস্তাদ করিম' };
-    const truckColor = this.engine.gameState.truckColor?.hex || '#F5A623';
+    const truckColor = this.engine.gameState.truckColor?.hex || '#0E7C3A';
 
     container.innerHTML = `
       <div style="display: flex; flex-direction: column; height: 100%; position: relative; background: #0F0A06; overflow: hidden; user-select: none;">
         
-        <!-- Top HUD Header -->
-        <div style="position: absolute; top: 0; left: 0; right: 0; background: linear-gradient(180deg, rgba(15,10,7,0.96) 0%, rgba(15,10,7,0) 100%); padding: 8px 12px; z-index: 20; pointer-events: none; width: 100%;">
-          <div style="display: flex; justify-content: space-between; align-items: center; pointer-events: auto; width: 100%; gap: 8px; flex-wrap: wrap;">
-            
-            <!-- Driver Name & Mission -->
-            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <span style="color: #3F9B5B; font-weight: 800; font-size: clamp(0.95rem, 2.5vw, 1.15rem); text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
-                🚚 ${char.name}
-              </span>
-              <span style="font-size: 0.72rem; background: rgba(200,68,43,0.85); color: #FFF8EC; padding: 2px 8px; border-radius: 6px; font-weight: bold; border: 1px solid #F5A623;">
-                গ্রাম ➔ শহর ➔ কাওরান বাজার
-              </span>
-            </div>
-
-            <!-- Current Zone Pill Indicator -->
-            <div id="hud-zone-pill" style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); padding: 4px 14px; border-radius: 20px; border: 1.5px solid #F5A623; color: #FFF8EC; font-size: 0.82rem; font-weight: bold; box-shadow: 0 2px 10px rgba(0,0,0,0.5);">
-              <span id="zone-icon">🌾</span>
-              <span id="zone-title">১. পল্লীগ্রাম (Village)</span>
-            </div>
-
-            <!-- Distance Remaining -->
-            <div style="color: #FFF8EC; font-weight: 800; font-size: 0.92rem; background: rgba(0,0,0,0.65); backdrop-filter: blur(6px); padding: 3px 14px; border-radius: 20px; border: 1px solid rgba(63,155,91,0.5); white-space: nowrap;">
-              📍 বাকি: <span id="hud-distance" style="color: #3F9B5B; font-size: 1.2rem;">১২.০</span> কিমি
-            </div>
-          </div>
-
-          <!-- Produce Load Status & Driving Hint -->
-          <div style="display: flex; gap: 8px; margin-top: 6px; pointer-events: auto; width: 100%; max-width: 620px; align-items: center; flex-wrap: wrap;">
-            <div style="background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); padding: 3px 10px; border-radius: 8px; border: 1px solid rgba(63,155,91,0.3); text-align: center;">
-              <span style="font-size: 0.65rem; color: #7EE096;">সবজির চালান:</span>
-              <span style="color: #FFF8EC; font-weight: 800; font-size: 0.95rem; margin-left: 4px;">১,০০০ কেজি</span>
-            </div>
-            
-            <div style="font-size: 0.72rem; color: #FFE082; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); padding: 3px 10px; border-radius: 8px; border: 1px solid rgba(245,166,35,0.4); font-weight: bold;">
-              🎮 গাড়ি চালাতে <strong>⬆️ বা W</strong> চেপে রাখুন • বুস্টে <strong>Shift</strong>
-            </div>
-
-            <div id="turbo-badge-top" style="display: none; background: linear-gradient(90deg, #F5A623, #FF4500); color: #FFF; font-weight: 900; font-size: 0.75rem; padding: 3px 12px; border-radius: 8px; align-items: center; gap: 4px; animation: pulse 0.6s infinite alternate;">
-              ⚡ টার্বো বুস্ট সক্রিয়!
-            </div>
-          </div>
-        </div>
-
         <!-- 3D WebGL Canvas Viewport -->
         <div id="three-container" style="flex: 1; width: 100%; height: 100%; position: relative; overflow: hidden;">
           
-          <!-- Animated Landmark Announcement Banner -->
-          <div id="landmark-banner" style="display: none; position: absolute; top: 105px; left: 50%; transform: translateX(-50%) translateY(-20px); opacity: 0; background: rgba(20, 14, 10, 0.94); border: 2px solid #F5A623; border-radius: 14px; padding: 10px 24px; z-index: 28; box-shadow: 0 10px 35px rgba(0,0,0,0.85); text-align: center; pointer-events: none; transition: all 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275); min-width: 290px; max-width: 90%;">
-            <div id="banner-badge" style="font-size: 0.72rem; color: #F5A623; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800;">
-              📍 নতুন অঞ্চল
-            </div>
-            <div id="banner-title" style="font-size: clamp(1.15rem, 3.2vw, 1.45rem); color: #FFF8EC; font-weight: 900; margin: 3px 0;">
-              ১. পল্লীগ্রাম (Village)
-            </div>
-            <div id="banner-subtitle" style="font-size: 0.82rem; color: #DDD;">
-              শান্ত শ্যামল গ্রামবাংলা, কুঁড়েঘর ও চায়ের টং দোকান
-            </div>
-          </div>
-
-          <!-- Speedometer Dial (Bottom-Left) -->
-          <div id="speedo-box" style="position: absolute; bottom: 85px; left: 14px; width: 88px; height: 88px; background: rgba(26,17,11,0.85); backdrop-filter: blur(6px); border-radius: 50%; border: 2.5px solid #F5A623; box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 25; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;">
-            <div style="font-size: 0.62rem; color: #AAA; text-transform: uppercase;">গতি</div>
-            <div id="speedo-number" style="font-size: 1.35rem; font-weight: 900; color: #F5A623; line-height: 1;">০</div>
-            <div style="font-size: 0.58rem; color: #FFF8EC;">কিমি/ঘণ্টা</div>
-          </div>
-
-        </div>
-
-        <!-- Bottom Controls Console: 4-Way Steering + Shift Turbo Boost + Horn -->
-        <div style="background: rgba(20, 13, 8, 0.96); padding: 8px 12px; border-top: 3px solid rgba(245,166,35,0.35); width: 100%; z-index: 30;">
-          <div style="display: flex; gap: 8px; width: 100%; max-width: 820px; margin: 0 auto; align-items: center;">
+          <!-- PROFESSIONAL DRIVING SIMULATOR HUD OVERLAY (MATCHING REFERENCE IMAGE) -->
+          <div class="sim-hud-overlay">
             
-            <!-- Left / Right Steering -->
-            <button id="btn-ctrl-left" class="btn btn-secondary" style="flex: 1; min-height: 52px; font-size: clamp(0.95rem, 2.2vw, 1.15rem); padding: 4px 8px;">
-              ◀ বাঁয়ে <span class="kbd-hint">A / ⬅️</span>
-            </button>
+            <!-- TOP-LEFT STATUS PANEL -->
+            <div class="sim-top-left-panel">
+              <div class="sim-status-row">
+                <span class="sim-status-label">Position:</span>
+                <span class="sim-status-val">1 / 1</span>
+              </div>
+              <div class="sim-status-row">
+                <span class="sim-status-label">Time:</span>
+                <span id="hud-sim-time" class="sim-status-val">00:00.00</span>
+              </div>
+              <div class="sim-status-row">
+                <span class="sim-status-label">Checkpoint:</span>
+                <span id="hud-sim-checkpoint" class="sim-status-val">1 / 5</span>
+              </div>
+            </div>
 
-            <!-- Forward / Backward Drive -->
-            <button id="btn-ctrl-forward" class="btn btn-secondary" style="flex: 1.1; min-height: 52px; font-size: clamp(0.95rem, 2.2vw, 1.15rem); padding: 4px 8px; background: #2A402A; border-color: #3F9B5B;">
-              ⬆️ সামনে <span class="kbd-hint">W / ⬆️</span>
-            </button>
+            <!-- TOP-RIGHT GROUP (PAUSE BUTTON & MINI-MAP) -->
+            <div class="sim-top-right-group">
+              <!-- Mini-Map Card -->
+              <div class="sim-minimap-card">
+                <canvas id="sim-minimap-canvas" class="sim-minimap-canvas" width="98" height="116"></canvas>
+              </div>
 
-            <button id="btn-ctrl-backward" class="btn btn-secondary" style="flex: 1.1; min-height: 52px; font-size: clamp(0.95rem, 2.2vw, 1.15rem); padding: 4px 8px; background: #402A2A; border-color: #C8442B;">
-              ⬇️ পেছনে <span class="kbd-hint">S / ⬇️</span>
-            </button>
+              <!-- Pause Button -->
+              <button id="btn-sim-pause" class="sim-pause-btn" title="Pause Game (ESC / P)">
+                ❚❚
+              </button>
+            </div>
 
-            <button id="btn-ctrl-right" class="btn btn-secondary" style="flex: 1; min-height: 52px; font-size: clamp(0.95rem, 2.2vw, 1.15rem); padding: 4px 8px;">
-              ডানে ▶ <span class="kbd-hint">D / ➡️</span>
-            </button>
+            <!-- CHECKPOINT NOTIFICATION BANNER -->
+            <div id="sim-checkpoint-banner" class="sim-checkpoint-banner">
+              🏁 চেকপয়েন্ট ১/৫ অতিক্রম!
+            </div>
 
-            <!-- Turbo Boost (Shift) Button -->
-            <button id="btn-ctrl-boost" class="btn btn-accent" style="flex: 1.3; min-height: 52px; font-size: clamp(0.95rem, 2.2vw, 1.15rem); padding: 4px 8px; background: linear-gradient(135deg, #FF6B35, #D82B00); border: 1.5px solid #FFD700; font-weight: 900;">
-              ⚡ বুস্ট <span class="kbd-hint" style="color:#FFF;">Shift</span>
-            </button>
+            <!-- ROAD SHOULDER OFF-ROAD WARNING -->
+            <div id="sim-offroad-warn" style="display: none; position: absolute; top: 145px; left: 50%; transform: translateX(-50%); background: rgba(220, 38, 38, 0.9); border: 2px solid #FEF08A; border-radius: 8px; padding: 4px 16px; color: #FFF; font-weight: 800; font-size: 0.88rem; box-shadow: 0 4px 12px rgba(0,0,0,0.6); pointer-events: none; z-index: 55;">
+              ⚠️ রাস্তার বাইরে (কাঁচা মাটি)! গতি কমে যাচ্ছে
+            </div>
 
-            <!-- Horn Button -->
-            <button id="btn-ctrl-horn" class="btn btn-primary pulse-glow" style="flex: 1.2; min-height: 52px; font-size: clamp(0.95rem, 2.2vw, 1.15rem); padding: 4px 8px;">
-              📢 হর্ন <span class="kbd-hint" style="color:#111;">Space</span>
-            </button>
+            <!-- BOTTOM-LEFT STEERING WHEEL OVERLAY -->
+            <div id="sim-steering-wheel" class="sim-steering-container" title="স্টিয়ারিং ঘোরান (A/D বা মাউস ড্র্যাগ)">
+              <svg viewBox="0 0 200 200" width="100%" height="100%" style="display: block; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8));">
+                <defs>
+                  <radialGradient id="hubGrad" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#4B5563" />
+                    <stop offset="70%" stop-color="#1F2937" />
+                    <stop offset="100%" stop-color="#111827" />
+                  </radialGradient>
+                  <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#374151" />
+                    <stop offset="50%" stop-color="#1F2937" />
+                    <stop offset="100%" stop-color="#111827" />
+                  </linearGradient>
+                  <linearGradient id="spokeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#4B5563" />
+                    <stop offset="50%" stop-color="#9CA3AF" />
+                    <stop offset="100%" stop-color="#374151" />
+                  </linearGradient>
+                </defs>
+                <!-- Outer Grip Rim -->
+                <circle cx="100" cy="100" r="90" fill="none" stroke="url(#rimGrad)" stroke-width="18" />
+                <circle cx="100" cy="100" r="98" fill="none" stroke="#111827" stroke-width="2" />
+                <circle cx="100" cy="100" r="82" fill="none" stroke="#374151" stroke-width="1.5" />
+                <!-- Grip Ribs -->
+                <path d="M 18,92 Q 10,100 18,108" fill="none" stroke="#4B5563" stroke-width="3" />
+                <path d="M 182,92 Q 190,100 182,108" fill="none" stroke="#4B5563" stroke-width="3" />
+                <!-- Top Center Alignment Marker (Yellow racing stripe) -->
+                <rect x="96" y="8" width="8" height="18" rx="2" fill="#F5A623" />
+                <!-- Left Spoke -->
+                <path d="M 40,100 L 75,96 L 75,104 Z" fill="url(#spokeGrad)" />
+                <!-- Right Spoke -->
+                <path d="M 160,100 L 125,96 L 125,104 Z" fill="url(#spokeGrad)" />
+                <!-- Bottom Center Spoke -->
+                <path d="M 100,165 L 94,125 L 106,125 Z" fill="url(#spokeGrad)" />
+                <!-- Center Hub -->
+                <circle cx="100" cy="100" r="32" fill="url(#hubGrad)" stroke="#6B7280" stroke-width="2.5" />
+                <circle cx="100" cy="100" r="22" fill="#111827" stroke="#4B5563" stroke-width="1.5" />
+                <!-- Center E-Rickshaw Icon -->
+                <text x="100" y="107" font-size="20" text-anchor="middle" fill="#FFD700">🛺</text>
+              </svg>
+            </div>
+
+            <!-- BOTTOM-RIGHT CONTROLS (SPEEDOMETER & FOOT PEDALS) -->
+            <div class="sim-bottom-right-group">
+              
+              <!-- SPEEDOMETER GAUGE -->
+              <div class="sim-speedo-gauge">
+                <svg class="sim-speedo-svg" viewBox="0 0 160 160">
+                  <defs>
+                    <!-- Arc Gradient: Green (0-35) -> Yellow (35-55) -> Red (55-80) -->
+                    <linearGradient id="speedArcGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#10B981" />
+                      <stop offset="50%" stop-color="#F59E0B" />
+                      <stop offset="100%" stop-color="#EF4444" />
+                    </linearGradient>
+                  </defs>
+
+                  <!-- Dial Background Disc -->
+                  <circle cx="80" cy="80" r="74" fill="rgba(17, 24, 39, 0.88)" stroke="rgba(255, 255, 255, 0.2)" stroke-width="2" />
+                  
+                  <!-- Inactive Track Arc (135 deg to 405 deg) -->
+                  <circle cx="80" cy="80" r="62" fill="none" stroke="#374151" stroke-width="10" stroke-dasharray="292" stroke-dashoffset="73" stroke-linecap="round" transform="rotate(135 80 80)" />
+                  
+                  <!-- Dynamic Colored Active Speed Arc -->
+                  <circle id="speedo-active-arc" cx="80" cy="80" r="62" fill="none" stroke="url(#speedArcGrad)" stroke-width="10" stroke-dasharray="292" stroke-dashoffset="292" stroke-linecap="round" transform="rotate(135 80 80)" style="transition: stroke-dashoffset 0.08s ease-out;" />
+
+                  <!-- Speed Gauge Needle -->
+                  <g id="speedo-needle-group" transform="rotate(135 80 80)" style="transition: transform 0.08s ease-out;">
+                    <polygon points="80,24 83,80 77,80" fill="#EF4444" />
+                    <circle cx="80" cy="80" r="6" fill="#F3F4F6" stroke="#111827" stroke-width="2" />
+                  </g>
+                </svg>
+
+                <div class="sim-speedo-content">
+                  <div id="sim-speedo-num" class="sim-speedo-value">0</div>
+                  <div class="sim-speedo-unit">KM/H</div>
+                </div>
+              </div>
+
+              <!-- FOOT PEDALS (BRAKE & RACE) -->
+              <div class="sim-pedals-group">
+                
+                <!-- BRAKE PEDAL -->
+                <div id="btn-pedal-brake" class="sim-pedal sim-pedal-brake" title="ব্রেক / রিভার্স (S / Down Arrow)">
+                  <div class="sim-pedal-grip-lines">
+                    <div class="sim-pedal-line"></div>
+                    <div class="sim-pedal-line"></div>
+                    <div class="sim-pedal-line"></div>
+                    <div class="sim-pedal-line"></div>
+                  </div>
+                  <div class="sim-pedal-label">BRAKE</div>
+                </div>
+
+                <!-- RACE / ACCELERATOR PEDAL -->
+                <div id="btn-pedal-race" class="sim-pedal sim-pedal-race" title="এক্সিলারেটর / গ্যাস (W / Up Arrow)">
+                  <div class="sim-pedal-grip-lines">
+                    <div class="sim-pedal-line"></div>
+                    <div class="sim-pedal-line"></div>
+                    <div class="sim-pedal-line"></div>
+                    <div class="sim-pedal-line"></div>
+                    <div class="sim-pedal-line"></div>
+                  </div>
+                  <div class="sim-pedal-label">RACE</div>
+                </div>
+
+              </div>
+
+            </div>
 
           </div>
+
+          <!-- PAUSE MODAL OVERLAY -->
+          <div id="sim-pause-modal" class="modal-overlay" style="display: none; z-index: 100;">
+            <div class="modal-dialog" style="max-width: 420px; text-align: center;">
+              <div style="font-size: 3rem; margin-bottom: 8px;">⏸️</div>
+              <h2 style="color: #F5A623; font-size: 1.8rem; font-weight: 900; margin-bottom: 6px;">
+                খেলা সাময়িক স্থগিত (Paused)
+              </h2>
+              <p style="font-size: 0.95rem; color: #555; margin-bottom: 18px;">
+                গ্রামবাংলার মনোরম রাস্তায় গাড়ি পার্ক করা আছে। চালিয়ে যেতে প্রস্তুত?
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button id="btn-pause-resume" class="btn btn-green" style="font-size: 1.15rem; padding: 12px;">
+                  ▶ খেলা চালিয়ে যান (Resume)
+                </button>
+                <button id="btn-pause-sound" class="btn btn-secondary" style="font-size: 1rem; padding: 10px;">
+                  🔊 সাউন্ড টগল
+                </button>
+                <button id="btn-pause-restart" class="btn btn-secondary" style="font-size: 1rem; padding: 10px;">
+                  ↺ পুনরায় শুরু করুন (Restart)
+                </button>
+                <button id="btn-pause-quit" class="btn btn-danger" style="font-size: 1rem; padding: 10px;">
+                  🏠 প্রধান মেনুতে প্রস্থান
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
 
       </div>
@@ -283,7 +302,6 @@ export class DriverScene3D {
 
     this.startLoop();
     sound.fadeBGMToLow();
-    this.announceZone(this.currentZone);
   }
 
   initThree(truckColor) {
@@ -291,309 +309,339 @@ export class DriverScene3D {
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 500;
 
-    // 1. Scene & Atmosphere
+    // 1. Scene & Atmosphere (Sunny rural Bangladeshi daytime)
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(this.currentZone.skyColor);
-    this.scene.fog = new THREE.FogExp2(this.currentZone.skyColor, this.currentZone.fogDensity);
+    const skyColor = new THREE.Color('#78B9ED'); // Crisp blue sunny sky
+    this.scene.background = skyColor;
+    this.scene.fog = new THREE.FogExp2('#A7D3F5', 0.0038);
 
-    // 2. Camera
-    this.camera = new THREE.PerspectiveCamera(54, width / height, 0.1, 450);
-    this.camera.position.set(0, 4.8, 9.5);
-    this.camera.lookAt(0, 2.2, -8.0);
+    // 2. Camera: Professional Third-Person Follow Perspective
+    this.camera = new THREE.PerspectiveCamera(54, width / height, 0.1, 550);
+    this.camera.position.set(0, 2.45, 4.3);
+    this.camera.lookAt(0, 1.48, -14.0);
 
     // 3. WebGL Renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(this.renderer.domElement);
 
-    // 4. Lights
-    this.ambientLight = new THREE.AmbientLight('#FFF8EC', 0.7);
-    this.scene.add(this.ambientLight);
+    // 4. Lighting Setup: Warm Sunlight & Atmospheric Ambient
+    const hemiLight = new THREE.HemisphereLight('#E3F2FD', '#33691E', 0.85);
+    this.scene.add(hemiLight);
 
-    this.sunLight = new THREE.DirectionalLight('#FFF3D1', 1.2);
-    this.sunLight.position.set(25, 45, 20);
-    this.sunLight.castShadow = true;
-    this.scene.add(this.sunLight);
+    const sunLight = new THREE.DirectionalLight('#FFF9E6', 1.8);
+    sunLight.position.set(35, 60, 25);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 180;
+    sunLight.shadow.camera.left = -30;
+    sunLight.shadow.camera.right = 30;
+    sunLight.shadow.camera.top = 30;
+    sunLight.shadow.camera.bottom = -30;
+    this.scene.add(sunLight);
 
-    this.tunnelLight = new THREE.PointLight('#FFAE00', 0, 40);
-    this.tunnelLight.position.set(0, 6, -10);
-    this.scene.add(this.tunnelLight);
-
-    // 5. Ground Plane
-    const groundGeo = new THREE.PlaneGeometry(360, 600);
-    this.groundMat = new THREE.MeshLambertMaterial({ color: this.currentZone.groundColor });
-    this.groundMesh = new THREE.Mesh(groundGeo, this.groundMat);
+    // 5. Expansive Ground Terrain (Lush Rice Paddy Field)
+    const groundGeo = new THREE.PlaneGeometry(360, 640);
+    const paddyTex = createRicePaddyTexture();
+    paddyTex.repeat.set(16, 28);
+    const groundMat = new THREE.MeshStandardMaterial({
+      map: paddyTex,
+      roughness: 0.85,
+      metalness: 0.05
+    });
+    this.groundMesh = new THREE.Mesh(groundGeo, groundMat);
     this.groundMesh.rotation.x = -Math.PI / 2;
-    this.groundMesh.position.set(0, -0.05, -150);
+    this.groundMesh.position.set(0, -0.05, -160);
     this.scene.add(this.groundMesh);
 
-    // 6. Smooth Scrolling Road (NO obstacles on road!)
-    const roadTex = createRoadTexture();
-    roadTex.repeat.set(1, 10);
-    const roadMat = new THREE.MeshLambertMaterial({ map: roadTex });
+    // 6. Seamless Scrolling Asphalt Road Segments
+    const roadTex = createVillageAsphaltRoadTexture();
+    roadTex.repeat.set(1, 14);
+    const roadMat = new THREE.MeshStandardMaterial({
+      map: roadTex,
+      roughness: 0.75,
+      metalness: 0.15
+    });
 
-    for (let i = 0; i < 4; i++) {
-      const roadGeo = new THREE.PlaneGeometry(10.5, 120);
-      const road = new THREE.Mesh(roadGeo, roadMat);
-      road.rotation.x = -Math.PI / 2;
-      road.position.set(0, 0, -i * 120);
-      this.scene.add(road);
-      this.roadSegments.push(road);
+    const segmentCount = 5;
+    const segmentLength = 120;
+    for (let i = 0; i < segmentCount; i++) {
+      const roadGeo = new THREE.PlaneGeometry(11.0, segmentLength);
+      const roadMesh = new THREE.Mesh(roadGeo, roadMat);
+      roadMesh.rotation.x = -Math.PI / 2;
+      roadMesh.position.set(0, 0.01, -i * segmentLength);
+      roadMesh.receiveShadow = true;
+      this.scene.add(roadMesh);
+      this.roadSegments.push(roadMesh);
     }
 
-    // 7. Player Truck
-    this.truck = buildTruck3D(truckColor, 'হর্ন দিন');
+    // 7. Player Bangladeshi Tempo / E-Rickshaw
+    this.truck = buildTempoRickshaw3D(truckColor);
     this.truck.position.set(0, 0, 0);
-    this.truck.rotation.y = Math.PI;
+    this.truck.rotation.y = Math.PI; // Orient forward along negative Z
     this.scene.add(this.truck);
 
-    // 8. Roadside Scenery (Village, City, DU, Tunnel, Rail, Market)
-    this.initRoadsideProps();
-    this.initZoneLandmarks();
+    // 8. World Scenery: Rural Bangladesh Environment
+    this.initVillageEnvironment();
   }
 
-  initRoadsideProps() {
-    for (let z = -20; z > -360; z -= 16) {
-      this.spawnRoadsideProp(z);
+  initVillageEnvironment() {
+    // 1. Bamboo Fences along Left Roadside
+    for (let z = 20; z > -500; z -= 24) {
+      const fence = buildBambooFence3D(24);
+      fence.position.set(-5.9, 0, z);
+      this.scene.add(fence);
+      this.bambooFences.push(fence);
+    }
+
+    // 2. Concrete Electric Utility Poles along Right Roadside with Overhead Wires
+    const wireDistance = 48;
+    for (let z = 20; z > -520; z -= wireDistance) {
+      const pole = buildElectricPoleWithWires3D(wireDistance);
+      pole.position.set(6.8, 0, z);
+      this.scene.add(pole);
+      this.electricPoles.push(pole);
+    }
+
+    // 3. Village Pond on the Left Side
+    this.villagePond = buildVillagePondSide3D(38, 75);
+    this.villagePond.position.set(-28, 0, -110);
+    this.scene.add(this.villagePond);
+    this.scrollingDecorations.push(this.villagePond);
+
+    // 4. Village Roadside Tea Stall on the Right Side
+    this.teaStall = buildVillageTeaStallEnhanced3D();
+    this.teaStall.position.set(11.2, 0, -85);
+    this.scene.add(this.teaStall);
+    this.scrollingDecorations.push(this.teaStall);
+
+    // 5. Village Tin Houses along the Right Edge
+    const houseDistances = [-160, -280, -410];
+    houseDistances.forEach((z, idx) => {
+      const house = buildVillageTinHouse3D();
+      house.position.set(16 + (idx % 2) * 3, 0, z);
+      this.scene.add(house);
+      this.scrollingDecorations.push(house);
+    });
+
+    // 6. Canal Culvert Bridge across Road
+    this.canalBridge = buildCanalBridgeSegment3D(11.2, 22);
+    this.canalBridge.position.set(0, 0, -220);
+    this.scene.add(this.canalBridge);
+    this.scrollingDecorations.push(this.canalBridge);
+
+    // 7. Directional Chevron Arrows (>>>) Hovering ahead (as in reference photo!)
+    this.directionalChevrons = buildDirectionalChevrons3D();
+    this.directionalChevrons.position.set(0, 1.8, -48);
+    this.scene.add(this.directionalChevrons);
+
+    // 8. Celebratory Finish Line Arch Gantry at Gated Destination
+    this.finishLineArch = buildFinishLine3D(11.2);
+    this.finishLineArch.position.set(0, 0, -560);
+    this.scene.add(this.finishLineArch);
+    this.scrollingDecorations.push(this.finishLineArch);
+
+    // 9. Natural Trees & Vegetation (Coconuts, Bananas, Palms)
+    for (let z = 10; z > -500; z -= 14) {
+      this.spawnVegetationProp(z);
     }
   }
 
-  // Spawns scenery safely off the road on the grass/sidewalk (never on the road!)
-  spawnRoadsideProp(z) {
-    const isLeft = Math.random() > 0.5;
-    // Road edge is +/-5.25m. Minimum X is +/-10.5m so all props are at least 5.25m away on the grass!
-    const x = isLeft ? -(10.5 + Math.random() * 8) : (10.5 + Math.random() * 8);
+  spawnVegetationProp(z) {
+    const isLeft = Math.random() > 0.45;
+    // Keep vegetation safely off the asphalt road!
+    const x = isLeft ? -(9.2 + Math.random() * 14) : (10.5 + Math.random() * 16);
 
-    let prop;
-    const zoneId = this.currentZone.id;
-
-    if (zoneId === 'village') {
-      // Use clean single-model props centered at (0,0,0) — never clusters with internal offsets!
-      const bList = [buildHut3D, buildTeaStall3D, buildPalmTree3D, buildBananaTree3D];
-      const b = bList[Math.floor(Math.random() * bList.length)];
-      prop = b();
-    } else if (zoneId === 'city') {
-      const bList = [
-        () => buildCitySkyscraper3D(26, 'metro'),
-        () => buildBillboard3D('ডিজিটাল বাংলাদেশ', 'স্বপ্নের রাজধানী এক্সপ্রেস', 'metro'),
-        buildPalmTree3D
-      ];
-      const b = bList[Math.floor(Math.random() * bList.length)];
-      prop = b();
-    } else if (zoneId === 'university') {
-      const bList = [
-        () => buildBillboard3D('ঢাকা বিশ্ববিদ্যালয়', 'প্রাচ্যের অক্সফোর্ড ক্যাম্পাস', 'parliament'),
-        buildPalmTree3D
-      ];
-      const b = bList[Math.floor(Math.random() * bList.length)];
-      prop = b();
-    } else if (zoneId === 'tunnel') {
-      // Inside tunnel, props hidden
-      prop = new THREE.Group();
-    } else if (zoneId === 'rail') {
-      const bList = [
-        () => buildBillboard3D('ঢাকা মেট্রোরেল MRT-6', 'উত্তরা টু মতিঝিল সরাসরি', 'metro'),
-        () => buildCitySkyscraper3D(24, 'metro')
-      ];
-      const b = bList[Math.floor(Math.random() * bList.length)];
-      prop = b();
+    const r = Math.random();
+    let tree;
+    if (r < 0.45) {
+      tree = buildVillageCoconutTree3D();
+    } else if (r < 0.75) {
+      tree = buildBananaTree3D();
     } else {
-      // Market zone
-      prop = buildTeaStall3D();
+      tree = buildPalmTree3D();
     }
 
-    prop.position.set(x, 0, z);
-    this.scene.add(prop);
-    this.roadsideProps.push(prop);
-  }
-
-  initZoneLandmarks() {
-    // 1. Village (Initial view has roadside tea stalls & palms safely on the grass)
-
-    // 2. City Block Skyscrapers (Safely on right side grass at X = 25m to 45m)
-    this.cityBlock = new THREE.Group();
-    for (let c = 0; c < 3; c++) {
-      const tower = buildCitySkyscraper3D(28 + c * 4, 'metro');
-      tower.position.set(25 + c * 10, 0, -220 - c * 50);
-      this.cityBlock.add(tower);
-    }
-    this.scene.add(this.cityBlock);
-    this.landmarkSuperstructures.push(this.cityBlock);
-
-    // 3. Dhaka University Curzon Hall (Safely on right side lawn at X = 38m)
-    this.curzonHall = buildCurzonHall3D();
-    this.curzonHall.position.set(38, 0, -480);
-    this.scene.add(this.curzonHall);
-    this.landmarkSuperstructures.push(this.curzonHall);
-
-    // 4. Karnaphuli Tunnel Tube (Zone 4 - Open archway portal spanning above road)
-    this.karnaphuliTunnel = buildKarnaphuliTunnelSegment3D(200, true);
-    this.karnaphuliTunnel.position.set(0, 0, -680);
-    this.scene.add(this.karnaphuliTunnel);
-    this.landmarkSuperstructures.push(this.karnaphuliTunnel);
-
-    // 5. Metro Rail Elevated Viaduct & Moving Train (Safely on left side at X = -14m)
-    this.metroViaduct = buildMetroViaductSegment3D(220);
-    this.metroViaduct.position.set(-14, 0, -880);
-    this.scene.add(this.metroViaduct);
-    this.landmarkSuperstructures.push(this.metroViaduct);
-
-    this.movingMetroTrain = buildMetroTrain3D();
-    this.movingMetroTrain.position.set(-14, 9.8, -940);
-    this.scene.add(this.movingMetroTrain);
-
-    // 6. Wholesale Market Destination (Zone 6 - 17m wide arch gate spanning road at 9.8m height)
-    this.marketDestination = buildMarketDestination3D();
-    this.marketDestination.position.set(0, 0, -1120);
-    this.scene.add(this.marketDestination);
-    this.landmarkSuperstructures.push(this.marketDestination);
+    tree.position.set(x, 0, z);
+    this.scene.add(tree);
+    this.roadsideProps.push(tree);
   }
 
   bindControls() {
-    // UI Button bindings for mouse & touch
-    const addHoldListener = (selector, key) => {
+    // Pedals binding
+    const setupPedal = (selector, key) => {
       const el = this.container.querySelector(selector);
       if (!el) return;
 
-      const start = (e) => {
+      const press = (e) => {
         e.preventDefault();
         this.keyState[key] = true;
         el.classList.add('active');
-        if (key === 'boost') this.triggerBoostSound();
       };
-      const stop = (e) => {
+      const release = (e) => {
         e.preventDefault();
         this.keyState[key] = false;
         el.classList.remove('active');
       };
 
-      el.addEventListener('mousedown', start);
-      el.addEventListener('mouseup', stop);
-      el.addEventListener('mouseleave', stop);
-      el.addEventListener('touchstart', start, { passive: false });
-      el.addEventListener('touchend', stop);
-      el.addEventListener('touchcancel', stop);
+      el.addEventListener('mousedown', press);
+      el.addEventListener('mouseup', release);
+      el.addEventListener('mouseleave', release);
+      el.addEventListener('touchstart', press, { passive: false });
+      el.addEventListener('touchend', release);
+      el.addEventListener('touchcancel', release);
     };
 
-    addHoldListener('#btn-ctrl-left', 'left');
-    addHoldListener('#btn-ctrl-right', 'right');
-    addHoldListener('#btn-ctrl-forward', 'forward');
-    addHoldListener('#btn-ctrl-backward', 'backward');
-    addHoldListener('#btn-ctrl-boost', 'boost');
+    setupPedal('#btn-pedal-race', 'forward');
+    setupPedal('#btn-pedal-brake', 'backward');
 
-    // Horn Button
-    const hornBtn = this.container.querySelector('#btn-ctrl-horn');
-    if (hornBtn) {
-      hornBtn.addEventListener('click', () => {
-        this.triggerHorn();
+    // Steering Wheel Interactive Drag
+    const wheelEl = this.container.querySelector('#sim-steering-wheel');
+    if (wheelEl) {
+      let isDragging = false;
+      let startX = 0;
+
+      const onStart = (e) => {
+        isDragging = true;
+        startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+      };
+
+      const onMove = (e) => {
+        if (!isDragging) return;
+        const currentX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+        const delta = currentX - startX;
+        if (delta < -20) {
+          this.keyState.left = true;
+          this.keyState.right = false;
+        } else if (delta > 20) {
+          this.keyState.right = true;
+          this.keyState.left = false;
+        } else {
+          this.keyState.left = false;
+          this.keyState.right = false;
+        }
+      };
+
+      const onEnd = () => {
+        isDragging = false;
+        this.keyState.left = false;
+        this.keyState.right = false;
+      };
+
+      wheelEl.addEventListener('mousedown', onStart);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onEnd);
+      wheelEl.addEventListener('touchstart', onStart, { passive: true });
+      window.addEventListener('touchmove', onMove, { passive: true });
+      window.addEventListener('touchend', onEnd);
+    }
+
+    // Pause button and modal controls
+    const pauseBtn = this.container.querySelector('#btn-sim-pause');
+    const pauseModal = this.container.querySelector('#sim-pause-modal');
+    const resumeBtn = this.container.querySelector('#btn-pause-resume');
+    const soundBtn = this.container.querySelector('#btn-pause-sound');
+    const restartBtn = this.container.querySelector('#btn-pause-restart');
+    const quitBtn = this.container.querySelector('#btn-pause-quit');
+
+    const togglePause = () => {
+      this.isPaused = !this.isPaused;
+      if (pauseModal) {
+        pauseModal.style.display = this.isPaused ? 'flex' : 'none';
+        if (this.isPaused) pauseModal.classList.add('active');
+        else pauseModal.classList.remove('active');
+      }
+    };
+
+    if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
+    if (resumeBtn) resumeBtn.addEventListener('click', togglePause);
+    if (soundBtn) {
+      soundBtn.addEventListener('click', () => {
+        sound.toggleMute();
+        soundBtn.textContent = sound.isMuted() ? '🔇 সাউন্ড আনমিউট' : '🔊 সাউন্ড মিউট';
+      });
+    }
+    if (restartBtn) {
+      restartBtn.addEventListener('click', () => {
+        this.destroy();
+        this.engine.changeScene('driver');
+      });
+    }
+    if (quitBtn) {
+      quitBtn.addEventListener('click', () => {
+        this.destroy();
+        this.engine.changeScene('splash');
       });
     }
   }
 
   handleKeyDown(e) {
-    // Forward (Up Arrow, W)
+    if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+      const pauseBtn = this.container.querySelector('#btn-sim-pause');
+      if (pauseBtn) pauseBtn.click();
+      return;
+    }
+
+    if (this.isPaused) return;
+
+    // Forward (Accelerate: W, ArrowUp)
     if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
       e.preventDefault();
       this.keyState.forward = true;
+      const racePedal = this.container.querySelector('#btn-pedal-race');
+      if (racePedal) racePedal.classList.add('active');
     }
-    // Backward (Down Arrow, S)
+    // Backward (Brake / Reverse: S, ArrowDown)
     else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
       e.preventDefault();
       this.keyState.backward = true;
+      const brakePedal = this.container.querySelector('#btn-pedal-brake');
+      if (brakePedal) brakePedal.classList.add('active');
     }
-    // Left (Left Arrow, A)
+    // Steer Left (A, ArrowLeft)
     else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
       e.preventDefault();
       this.keyState.left = true;
     }
-    // Right (Right Arrow, D)
+    // Steer Right (D, ArrowRight)
     else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
       e.preventDefault();
       this.keyState.right = true;
     }
+    // Handbrake / Horn (Space)
+    else if (e.key === ' ' || e.code === 'Space') {
+      e.preventDefault();
+      this.keyState.handbrake = true;
+      sound.playTruckHornSFX();
+    }
     // Turbo Boost (Shift)
     else if (e.key === 'Shift') {
-      e.preventDefault();
-      if (!this.keyState.boost) {
-        this.triggerBoostSound();
-      }
       this.keyState.boost = true;
-    }
-    // Horn (Space, H)
-    else if (e.key === ' ' || e.code === 'Space' || e.key === 'h' || e.key === 'H') {
-      e.preventDefault();
-      this.triggerHorn();
     }
   }
 
   handleKeyUp(e) {
     if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
       this.keyState.forward = false;
+      const racePedal = this.container.querySelector('#btn-pedal-race');
+      if (racePedal) racePedal.classList.remove('active');
     } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
       this.keyState.backward = false;
+      const brakePedal = this.container.querySelector('#btn-pedal-brake');
+      if (brakePedal) brakePedal.classList.remove('active');
     } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
       this.keyState.left = false;
     } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
       this.keyState.right = false;
+    } else if (e.key === ' ' || e.code === 'Space') {
+      this.keyState.handbrake = false;
     } else if (e.key === 'Shift') {
       this.keyState.boost = false;
-    }
-  }
-
-  triggerBoostSound() {
-    sound.playSuccess();
-    sound.vibrate([60, 40, 80]);
-  }
-
-  triggerHorn() {
-    sound.playTruckHornSFX();
-    sound.vibrate(100);
-
-    const toast = document.createElement('div');
-    toast.className = 'coin-popup';
-    toast.style.left = '50%';
-    toast.style.top = '58%';
-    toast.textContent = '📢 পিপিইইইপ!';
-    this.container.appendChild(toast);
-    setTimeout(() => toast.remove(), 600);
-  }
-
-  announceZone(zone) {
-    if (!zone || this.lastAnnouncedZoneId === zone.id) return;
-    this.lastAnnouncedZoneId = zone.id;
-
-    // Update Top Pill
-    const iconEl = this.container.querySelector('#zone-icon');
-    const titleEl = this.container.querySelector('#zone-title');
-    if (iconEl) iconEl.textContent = zone.icon;
-    if (titleEl) titleEl.textContent = zone.name;
-
-    // Toast Banner
-    const banner = this.container.querySelector('#landmark-banner');
-    const bTitle = this.container.querySelector('#banner-title');
-    const bSub = this.container.querySelector('#banner-subtitle');
-
-    if (banner && bTitle && bSub) {
-      bTitle.textContent = `${zone.icon} ${zone.name}`;
-      bSub.textContent = zone.subtitle;
-
-      banner.style.display = 'block';
-      requestAnimationFrame(() => {
-        banner.style.opacity = '1';
-        banner.style.transform = 'translateX(-50%) translateY(0)';
-      });
-
-      sound.playSuccess();
-
-      setTimeout(() => {
-        banner.style.opacity = '0';
-        banner.style.transform = 'translateX(-50%) translateY(-20px)';
-        setTimeout(() => {
-          banner.style.display = 'none';
-        }, 450);
-      }, 4000);
     }
   }
 
@@ -604,13 +652,15 @@ export class DriverScene3D {
       const dt = Math.min((currentTime - lastTime) / 1000, 0.1);
       lastTime = currentTime;
 
-      this.update(dt);
+      if (!this.isPaused) {
+        this.update(dt);
+        this.renderMiniMap();
+      }
+
       this.renderer.render(this.scene, this.camera);
 
-      if (this.distanceKm > 0) {
+      if (!this.delivered) {
         this.animId = requestAnimationFrame(loop);
-      } else {
-        this.reachMarketDestination();
       }
     };
 
@@ -618,172 +668,280 @@ export class DriverScene3D {
   }
 
   update(dt) {
-    // 1. Calculate Target Speed with 4-Way Controls & Shift Boost
-    // IMPORTANT: When Up arrow / Forward is NOT pressed, target speed is 0! (Truck stays stopped)
+    // 1. Calculate Target Speed with Smooth Acceleration Curve
     let targetSpeed = 0;
 
     if (this.keyState.forward) {
-      if (this.keyState.boost) {
-        targetSpeed = this.boostSpeed; // 135 km/h Turbo
-      } else {
-        targetSpeed = this.cruiseSpeed; // 75 km/h Normal forward
-      }
+      this.isTimerRunning = true;
+      targetSpeed = this.keyState.boost ? this.boostSpeed : this.cruiseSpeed;
     } else if (this.keyState.backward) {
-      targetSpeed = this.reverseSpeed; // -25 km/h Reverse / Brake
-    } else if (this.keyState.boost && this.speed > 5) {
-      targetSpeed = this.boostSpeed;
+      this.isTimerRunning = true;
+      targetSpeed = this.reverseSpeed;
     } else {
-      targetSpeed = 0; // Decelerate to complete stop
+      targetSpeed = 0; // Decelerate to stop
     }
 
-    // Smooth acceleration / deceleration
-    const accelRate = this.keyState.boost ? 85 : (this.keyState.backward ? 95 : 55);
+    // Road Shoulder Boundary Detection: Off-road reduces maximum speed
+    const isOffRoad = Math.abs(this.truckX) > 3.6;
+    const offRoadWarn = this.container.querySelector('#sim-offroad-warn');
+    if (isOffRoad) {
+      if (offRoadWarn) offRoadWarn.style.display = 'block';
+      if (targetSpeed > 24) targetSpeed = 24;
+    } else {
+      if (offRoadWarn) offRoadWarn.style.display = 'none';
+    }
+
+    // Acceleration & Braking Rates
+    const accelRate = this.keyState.handbrake ? 95 : (this.keyState.forward ? 32 : (this.keyState.backward ? 45 : 24));
     if (this.speed < targetSpeed) {
       this.speed = Math.min(targetSpeed, this.speed + accelRate * dt);
     } else if (this.speed > targetSpeed) {
-      this.speed = Math.max(targetSpeed, this.speed - (targetSpeed === 0 ? 70 : accelRate) * dt);
-      if (Math.abs(this.speed) < 0.6 && targetSpeed === 0) {
+      this.speed = Math.max(targetSpeed, this.speed - accelRate * dt);
+      if (Math.abs(this.speed) < 0.4 && targetSpeed === 0) {
         this.speed = 0;
       }
     }
 
-
-    // Update Speedometer UI
-    const speedEl = this.container.querySelector('#speedo-number');
-    const speedBox = this.container.querySelector('#speedo-box');
-    const turboBadge = this.container.querySelector('#turbo-badge-top');
-
-    if (speedEl) {
-      speedEl.textContent = toBengaliNumber(Math.round(Math.abs(this.speed)));
+    if (this.speed > this.maxSpeedReached) {
+      this.maxSpeedReached = Math.round(this.speed);
     }
 
-    if (this.speed > 105) {
-      if (speedBox) {
-        speedBox.style.borderColor = '#FF4500';
-        speedBox.style.boxShadow = '0 0 25px rgba(255, 69, 0, 0.8)';
-      }
-      if (turboBadge) turboBadge.style.display = 'inline-flex';
-      // Dynamically widen camera FOV for high speed sensation
-      this.camera.fov += (62 - this.camera.fov) * 0.1;
-      this.camera.updateProjectionMatrix();
-    } else {
-      if (speedBox) {
-        speedBox.style.borderColor = '#F5A623';
-        speedBox.style.boxShadow = '0 4px 15px rgba(0,0,0,0.6)';
-      }
-      if (turboBadge) turboBadge.style.display = 'none';
-      this.camera.fov += (54 - this.camera.fov) * 0.1;
-      this.camera.updateProjectionMatrix();
+    // 2. Stopwatch Timer Tick (Starts on first acceleration)
+    if (this.isTimerRunning && !this.delivered) {
+      this.elapsedSeconds += dt;
+      const mins = Math.floor(this.elapsedSeconds / 60);
+      const secs = Math.floor(this.elapsedSeconds % 60);
+      const hundredths = Math.floor((this.elapsedSeconds * 100) % 100);
+      const formattedTime = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`;
+      const timeEl = this.container.querySelector('#hud-sim-time');
+      if (timeEl) timeEl.textContent = formattedTime;
     }
 
-    // 2. Free Continuous Left / Right Steering
-    const steerSpeed = 6.8 * dt;
-    if (this.keyState.left) {
-      this.truckX = Math.max(-this.roadHalfWidth, this.truckX - steerSpeed);
-    }
-    if (this.keyState.right) {
-      this.truckX = Math.min(this.roadHalfWidth, this.truckX + steerSpeed);
+    // 3. Update Speedometer UI & Pedals
+    const speedEl = this.container.querySelector('#sim-speedo-num');
+    const needleEl = this.container.querySelector('#speedo-needle-group');
+    const arcEl = this.container.querySelector('#speedo-active-arc');
+
+    const displaySpeed = Math.round(Math.abs(this.speed));
+    if (speedEl) speedEl.textContent = displaySpeed;
+
+    // Rotate needle from 135deg (0 km/h) to 405deg (80 km/h)
+    const speedRatio = Math.min(1, displaySpeed / 75);
+    const needleAngle = 135 + speedRatio * 270;
+    if (needleEl) needleEl.setAttribute('transform', `rotate(${needleAngle} 80 80)`);
+
+    // Dash offset for arc: full circumference is 292, 0% is 292, 100% is 73
+    const targetOffset = 292 - (speedRatio * 219);
+    if (arcEl) arcEl.setAttribute('stroke-dashoffset', targetOffset);
+
+    // 4. Smooth Steering Mechanics
+    let steerTarget = 0;
+    if (this.keyState.left) steerTarget = -1;
+    if (this.keyState.right) steerTarget = 1;
+
+    // Interpolate steer angle towards steer target
+    this.steerAngle += (steerTarget - this.steerAngle) * 9.5 * dt;
+
+    // Rotate Steering Wheel Overlay in Bottom-Left
+    const wheelContainer = this.container.querySelector('#sim-steering-wheel');
+    if (wheelContainer) {
+      wheelContainer.style.transform = `rotate(${this.steerAngle * 54}deg)`;
     }
 
-    // Smooth truck position & steering tilt
+    // Move Vehicle laterally across the road
+    const lateralSpeed = this.steerAngle * (Math.abs(this.speed) / 45) * 6.8 * dt;
+    this.truckX = Math.max(-this.roadHalfWidth, Math.min(this.roadHalfWidth, this.truckX + lateralSpeed));
+
+    // Smooth chassis visual tilt & steering fork
     const dx = this.truckX - this.truck.position.x;
     this.truck.position.x += dx * 0.22;
-    this.truck.rotation.z = -dx * 0.08; // Lean into turn
-    this.truck.rotation.y = Math.PI - dx * 0.08; // Yaw
+    this.truck.rotation.z = -this.steerAngle * 0.08; // Lean into turn
+    this.truck.rotation.y = Math.PI - this.steerAngle * 0.12; // Yaw
 
-    // Rotate Wheels
-    const worldSpeed = (this.speed * 0.45) * dt * 10;
+    // Front fork steering angle
+    if (this.truck.userData.frontSteerGroup) {
+      this.truck.userData.frontSteerGroup.rotation.y = -this.steerAngle * 0.45;
+    }
+
+    // Spin wheels
+    const worldSpeed = (this.speed * 0.42) * dt * 10;
     if (this.truck.userData.wheels) {
       this.truck.userData.wheels.forEach(w => {
-        w.rotation.x += worldSpeed * 0.6;
+        w.rotation.x += worldSpeed * 0.55;
       });
     }
 
-    // Camera follow truck
-    this.camera.position.x = this.truck.position.x * 0.42;
-    this.camera.lookAt(this.truck.position.x * 0.5, 2.2, -20.0);
+    // 5. Professional Chase Camera Following with Subtle Dynamic Lag
+    const targetCamX = this.truck.position.x * 0.42;
+    this.camera.position.x += (targetCamX - this.camera.position.x) * 0.15;
+    this.camera.position.y = 2.45 + (isOffRoad ? (Math.random() - 0.5) * 0.04 : 0); // Rumble on off-road
+    this.camera.lookAt(this.truck.position.x * 0.52, 1.48, -14.0);
 
-    // 3. Distance Countdown towards Karwan Bazar Market
+    // Dynamic FOV widening on high speed
+    const targetFov = 54 + (Math.abs(this.speed) / 75) * 6;
+    this.camera.fov += (targetFov - this.camera.fov) * 0.1;
+    this.camera.updateProjectionMatrix();
+
+    // 6. Trip Distance & Checkpoints
     if (this.speed > 0) {
-      const distStep = (this.speed / 3600) * dt * 7.5;
-      this.distanceKm = Math.max(0, this.distanceKm - distStep);
-    }
-    const distEl = this.container.querySelector('#hud-distance');
-    if (distEl) distEl.textContent = toBengaliNumber(this.distanceKm.toFixed(1));
-
-    // 4. Update Current Route Zone
-    const currentZone = ROUTE_ZONES.find(
-      z => this.distanceKm <= z.maxKm && this.distanceKm > z.minKm
-    ) || ROUTE_ZONES[ROUTE_ZONES.length - 1];
-
-    if (currentZone.id !== this.currentZone.id) {
-      this.currentZone = currentZone;
-      this.announceZone(currentZone);
+      const distStep = (this.speed / 3600) * dt * 6.5;
+      this.remainingDistanceKm = Math.max(0, this.remainingDistanceKm - distStep);
     }
 
-    // Atmosphere transitions
-    const targetSky = new THREE.Color(this.currentZone.skyColor);
-    this.scene.background.lerp(targetSky, 0.06);
-    this.scene.fog.color.lerp(targetSky, 0.06);
-    this.scene.fog.density += (this.currentZone.fogDensity - this.scene.fog.density) * 0.06;
-
-    const targetGround = new THREE.Color(this.currentZone.groundColor);
-    this.groundMat.color.lerp(targetGround, 0.06);
-
-    // Tunnel Lights
-    if (this.currentZone.isTunnel) {
-      this.tunnelLight.intensity += (1.8 - this.tunnelLight.intensity) * 0.1;
-      this.sunLight.intensity += (0.15 - this.sunLight.intensity) * 0.1;
-    } else {
-      this.tunnelLight.intensity += (0 - this.tunnelLight.intensity) * 0.1;
-      this.sunLight.intensity += (1.2 - this.sunLight.intensity) * 0.1;
+    // Checkpoint Triggering
+    const passedRatio = 1 - (this.remainingDistanceKm / this.totalDistanceKm);
+    const newCheckpoint = Math.min(5, Math.max(1, Math.floor(passedRatio * 5) + 1));
+    if (newCheckpoint > this.currentCheckpointIndex) {
+      this.currentCheckpointIndex = newCheckpoint;
+      this.triggerCheckpointPassed(this.currentCheckpointIndex);
     }
 
-    // 5. Scroll Road Segments
+    // 7. World Scrolling: Road Segments
     this.roadSegments.forEach(seg => {
       seg.position.z += worldSpeed;
       if (seg.position.z > 60) {
-        seg.position.z -= 480;
-      } else if (seg.position.z < -420) {
-        seg.position.z += 480;
+        seg.position.z -= 600;
+      } else if (seg.position.z < -540) {
+        seg.position.z += 600;
       }
     });
 
-    // 6. Scroll Landmark Superstructures
-    this.landmarkSuperstructures.forEach(struct => {
-      struct.position.z += worldSpeed;
-      if (struct.position.z > -400 && struct.position.z < 60) {
-        struct.visible = true;
-      } else {
-        struct.visible = false;
-      }
-      if (struct.position.z > 80) {
-        struct.position.z -= 1120;
-      }
+    // 8. World Scrolling: Roadside Fences, Electric Poles, & Scenery
+    this.bambooFences.forEach(fence => {
+      fence.position.z += worldSpeed;
+      if (fence.position.z > 50) fence.position.z -= 520;
     });
 
-    // Animate Metro Rail Train along viaduct
-    if (this.movingMetroTrain && this.movingMetroTrain.visible) {
-      this.movingMetroTrain.position.z += (worldSpeed + 0.45);
-      if (this.movingMetroTrain.position.z > 60) {
-        this.movingMetroTrain.position.z = -1000;
+    this.electricPoles.forEach(pole => {
+      pole.position.z += worldSpeed;
+      if (pole.position.z > 50) pole.position.z -= 540;
+    });
+
+    this.scrollingDecorations.forEach(deco => {
+      deco.position.z += worldSpeed;
+      if (deco.position.z > 60) deco.position.z -= 600;
+    });
+
+    // Animate Hovering Chevron Arrows
+    if (this.directionalChevrons) {
+      this.directionalChevrons.position.z += worldSpeed;
+      if (this.directionalChevrons.position.z > 25) {
+        this.directionalChevrons.position.z = -220;
       }
+      this.directionalChevrons.position.y = 1.8 + Math.sin(performance.now() * 0.005) * 0.15;
     }
 
-    // 7. Scroll Roadside Props safely off the road
+    // Scroll Trees & Vegetation
     for (let i = this.roadsideProps.length - 1; i >= 0; i--) {
       const prop = this.roadsideProps[i];
       prop.position.z += worldSpeed;
-      if (prop.position.z > 25) {
+      if (prop.position.z > 35) {
         this.scene.remove(prop);
         this.roadsideProps.splice(i, 1);
-        this.spawnRoadsideProp(-320);
+        this.spawnVegetationProp(-480);
       }
+    }
+
+    // 9. Finish Line Detection
+    if (this.remainingDistanceKm <= 0.05 && !this.delivered) {
+      this.reachFinishLine();
     }
   }
 
-  // Arrival at Kaoran Bazar Wholesale Produce Market
-  reachMarketDestination() {
+  triggerCheckpointPassed(index) {
+    sound.playSuccess();
+    sound.vibrate(80);
+
+    const cpEl = this.container.querySelector('#hud-sim-checkpoint');
+    if (cpEl) cpEl.textContent = `${index} / 5`;
+
+    const banner = this.container.querySelector('#sim-checkpoint-banner');
+    if (banner) {
+      banner.textContent = `🏁 চেকপয়েন্ট ${toBengaliNumber(index)}/৫ অতিক্রম!`;
+      banner.classList.add('visible');
+      setTimeout(() => {
+        banner.classList.remove('visible');
+      }, 2600);
+    }
+  }
+
+  renderMiniMap() {
+    const canvas = this.container.querySelector('#sim-minimap-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Background
+    ctx.fillStyle = '#0F172A';
+    ctx.fillRect(0, 0, w, h);
+
+    // Draw Smooth S-Curved Road Track
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(w * 0.5, h * 0.92);
+    ctx.bezierCurveTo(w * 0.25, h * 0.65, w * 0.85, h * 0.45, w * 0.7, h * 0.12);
+    ctx.stroke();
+
+    // Checkpoints on map
+    const cpPoints = [
+      { t: 0.2 }, { t: 0.4 }, { t: 0.6 }, { t: 0.8 }, { t: 0.98 }
+    ];
+
+    const getBezierPoint = (t) => {
+      const p0 = { x: w * 0.5, y: h * 0.92 };
+      const p1 = { x: w * 0.25, y: h * 0.65 };
+      const p2 = { x: w * 0.85, y: h * 0.45 };
+      const p3 = { x: w * 0.7, y: h * 0.12 };
+      const cx = 3 * (p1.x - p0.x);
+      const bx = 3 * (p2.x - p1.x) - cx;
+      const ax = p3.x - p0.x - cx - bx;
+      const cy = 3 * (p1.y - p0.y);
+      const by = 3 * (p2.y - p1.y) - cy;
+      const ay = p3.y - p0.y - cy - by;
+      const x = ax * (t ** 3) + bx * (t ** 2) + cx * t + p0.x;
+      const y = ay * (t ** 3) + by * (t ** 2) + cy * t + p0.y;
+      return { x, y };
+    };
+
+    cpPoints.forEach((cp, idx) => {
+      const pt = getBezierPoint(cp.t);
+      ctx.fillStyle = (idx + 1) < this.currentCheckpointIndex ? '#10B981' : '#F59E0B';
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Checkered Flag at end of track
+    ctx.font = '14px sans-serif';
+    ctx.fillText('🏁', w * 0.62, h * 0.12);
+
+    // Player Red Arrow Navigation Marker
+    const progress = Math.min(0.98, Math.max(0.02, 1 - (this.remainingDistanceKm / this.totalDistanceKm)));
+    const playerPt = getBezierPoint(progress);
+
+    ctx.save();
+    ctx.translate(playerPt.x, playerPt.y);
+    // Red navigation triangle
+    ctx.fillStyle = '#EF4444';
+    ctx.beginPath();
+    ctx.moveTo(0, -6);
+    ctx.lineTo(4.5, 5);
+    ctx.lineTo(0, 3);
+    ctx.lineTo(-4.5, 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  reachFinishLine() {
     if (this.delivered) return;
     this.delivered = true;
 
@@ -793,38 +951,60 @@ export class DriverScene3D {
     window.removeEventListener('resize', this.handleResize);
 
     sound.playSuccess();
-    sound.vibrate([100, 50, 150]);
+    sound.vibrate([120, 60, 180]);
 
-    // Beautiful Delivery Arrival Modal
+    // Confetti Fireworks Blast
+    try {
+      confetti({
+        particleCount: 120,
+        spread: 90,
+        origin: { y: 0.55 }
+      });
+    } catch (e) {
+      // ignore
+    }
+
+    const mins = Math.floor(this.elapsedSeconds / 60);
+    const secs = Math.floor(this.elapsedSeconds % 60);
+    const hundredths = Math.floor((this.elapsedSeconds * 100) % 100);
+    const finalTimeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`;
+
+    // Professional Finish Celebration Modal
     const arrivalModal = document.createElement('div');
     arrivalModal.className = 'modal-overlay active';
+    arrivalModal.style.zIndex = '150';
     arrivalModal.innerHTML = `
-      <div class="modal-dialog" style="max-width: 480px; text-align: center;">
-        <div style="font-size: 3.5rem; margin-bottom: 8px;">🥬 🚚 🪙</div>
-        <h2 style="color: #3F9B5B; font-size: 1.8rem; font-weight: 900; margin-bottom: 6px;">
-          কাওরান বাজার আড়তে সফল আগমন!
+      <div class="modal-dialog" style="max-width: 480px; text-align: center; border-color: #3F9B5B;">
+        <div style="font-size: 3.5rem; margin-bottom: 6px;">🏁 🛺 🥬</div>
+        <h2 style="color: #3F9B5B; font-size: 1.85rem; font-weight: 900; margin-bottom: 4px;">
+          যাত্রা সম্পন্ন! বিজয় ফটকে আগমন
         </h2>
-        <p style="font-size: 1rem; color: #444; line-height: 1.5; margin-bottom: 16px;">
-          গ্রাম, শহর, ঢাকা বিশ্ববিদ্যালয়, টানেল ও মেট্রোরেল পাড়ি দিয়ে <strong>১,০০০ কেজি সবজির চালান</strong> নিরাপদে কাওরান বাজারে পৌঁছে গেছে!
+        <p style="font-size: 0.98rem; color: #444; line-height: 1.5; margin-bottom: 16px;">
+          শ্যামল পল্লীগ্রামের রাস্তা, পুকুরপাড় ও টং দোকান পেরিয়ে <strong>১,০০০ কেজি তাজা সবজিভর্তি টেম্পো</strong> অক্ষত অবস্থায় গন্তব্যে পৌঁছেছে!
         </p>
 
-        <div style="background: rgba(63,155,91,0.12); border: 2px solid #3F9B5B; border-radius: 12px; padding: 12px 18px; margin-bottom: 18px; text-align: left;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-            <span>ডেলিভারি ওজন:</span>
-            <strong style="color: #1A110B;">১,০০০ কেজি</strong>
+        <!-- Race Simulator Stats Box -->
+        <div style="background: rgba(63,155,91,0.12); border: 2px solid #3F9B5B; border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; text-align: left;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span>⏱️ সমাপ্তি সময়:</span>
+            <strong style="color: #1A110B; font-size: 1.15rem;">${finalTimeStr}</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-            <span>ভাড়া ও পারিশ্রমিক আয়:</span>
-            <strong style="color: #3F9B5B; font-size: 1.15rem;">৳৫,০০০</strong>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span>📍 চেকপয়েন্ট সম্পন্ন:</span>
+            <strong style="color: #2E86AB; font-size: 1.1rem;">৫ / ৫ (১০০%)</strong>
           </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span>রাস্তায় কোনো চাঁদা/জরিমানা লাগেনি:</span>
-            <strong style="color: #2E86AB;">৳০ (১০০% লাভ!)</strong>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span>⚡ সর্বোচ্চ গতি:</span>
+            <strong style="color: #F5A623;">${toBengaliNumber(this.maxSpeedReached || 48)} কিমি/ঘণ্টা</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-top: 1.5px dashed rgba(0,0,0,0.15); padding-top: 8px;">
+            <span>💰 উপার্জিত ভাড়া:</span>
+            <strong style="color: #3F9B5B; font-size: 1.25rem;">৳৫,০০০</strong>
           </div>
         </div>
 
         <button id="btn-finish-delivery" class="btn btn-green" style="font-size: 1.25rem; padding: 14px; width: 100%;">
-          🎉 হিসাব ও সারসংক্ষেপ দেখুন ➔
+          🎉 হিসাব ও বিস্তারিত রসিদ দেখুন ➔
         </button>
       </div>
     `;
@@ -837,6 +1017,7 @@ export class DriverScene3D {
         profit: 5000,
         truckHealth: 100,
         priceHikePerKg: '0.0',
+        finalTime: finalTimeStr,
         success: true
       };
       this.engine.changeScene('summary');

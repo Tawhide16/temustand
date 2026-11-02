@@ -453,3 +453,286 @@ body {
   0% { transform: translateY(0) scale(0.8); opacity: 1; }
   100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
 }
+
+/* =========================================================================
+   🏎️ PROFESSIONAL DRIVING SIMULATOR HUD & CONTROLS (MATCHING REFERENCE)
+   ========================================================================= */
+
+.sim-hud-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  overflow: hidden;
+  font-family: 'Hind Siliguri', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Top-Left Status Panel */
+.sim-top-left-panel {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: rgba(14, 18, 24, 0.88);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  min-width: 175px;
+}
+
+.sim-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.sim-status-label {
+  color: #FFFFFF;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.sim-status-val {
+  color: #FFD700;
+  font-weight: 900;
+  font-family: 'Segoe UI', Roboto, monospace;
+  font-size: 1.05rem;
+  margin-left: 16px;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+/* Top-Right Container (Pause + Mini-Map) */
+.sim-top-right-group {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.sim-pause-btn {
+  width: 44px;
+  height: 44px;
+  background: rgba(14, 18, 24, 0.88);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+}
+
+.sim-pause-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.08);
+  border-color: #FFD700;
+}
+
+.sim-minimap-card {
+  width: 110px;
+  height: 128px;
+  background: rgba(14, 18, 24, 0.88);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  padding: 6px;
+  position: relative;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.sim-minimap-canvas {
+  width: 98px;
+  height: 116px;
+  border-radius: 8px;
+}
+
+/* Bottom-Left Steering Wheel */
+.sim-steering-container {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  width: clamp(140px, 20vw, 190px);
+  height: clamp(140px, 20vw, 190px);
+  pointer-events: auto;
+  cursor: grab;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.7));
+  transition: transform 0.08s ease-out;
+  touch-action: none;
+}
+
+.sim-steering-container:active {
+  cursor: grabbing;
+}
+
+/* Bottom-Right Controls (Speedometer + Pedals) */
+.sim-bottom-right-group {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  pointer-events: auto;
+}
+
+/* Speedometer Gauge Dial */
+.sim-speedo-gauge {
+  width: 120px;
+  height: 120px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.75));
+}
+
+.sim-speedo-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.sim-speedo-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  margin-top: 14px;
+}
+
+.sim-speedo-value {
+  font-size: 2.1rem;
+  font-weight: 900;
+  color: #FFFFFF;
+  line-height: 1;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+.sim-speedo-unit {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #D1D5DB;
+  letter-spacing: 1.2px;
+  margin-top: 2px;
+}
+
+/* Racing Pedals (Brake & Race) */
+.sim-pedals-group {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.sim-pedal {
+  background: linear-gradient(180deg, #374151 0%, #1F2937 40%, #111827 100%);
+  border: 2px solid #6B7280;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, border-color 0.1s ease;
+}
+
+.sim-pedal-brake {
+  width: 66px;
+  height: 85px;
+}
+
+.sim-pedal-race {
+  width: 72px;
+  height: 105px;
+}
+
+.sim-pedal-grip-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.sim-pedal-line {
+  width: 75%;
+  height: 5px;
+  background: #111827;
+  border-radius: 3px;
+  transform: skewX(-24deg);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.sim-pedal-label {
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #E5E7EB;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.sim-pedal.active, .sim-pedal:active {
+  transform: translateY(5px) scale(0.96);
+}
+
+.sim-pedal-race.active {
+  border-color: #10B981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.7);
+}
+
+.sim-pedal-brake.active {
+  border-color: #EF4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.7);
+}
+
+/* Checkpoint Notification Banner */
+.sim-checkpoint-banner {
+  position: absolute;
+  top: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: rgba(14, 18, 24, 0.92);
+  border: 2px solid #FFD700;
+  border-radius: 12px;
+  padding: 8px 24px;
+  color: #FFD700;
+  font-weight: 900;
+  font-size: 1.15rem;
+  letter-spacing: 1px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 60;
+  text-align: center;
+}
+
+.sim-checkpoint-banner.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+

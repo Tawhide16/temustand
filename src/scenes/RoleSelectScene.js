@@ -57,28 +57,28 @@ export class RoleSelectScene {
             <div>
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
                 <div style="display: flex; align-items: center; gap: 14px;">
-                  <span style="font-size: 3rem;">🚚</span>
+                  <span style="font-size: 3rem;">🛺</span>
                   <div>
-                    <h3 style="font-size: 1.85rem; color: #1A110B; margin: 0; line-height: 1.1; font-weight: 800;">ট্রাক ড্রাইভার</h3>
-                    <span style="font-size: 0.85rem; background: #3F9B5B; color: #FFF8EC; padding: 2px 10px; border-radius: 6px; font-weight: bold;">হাইওয়ে রিফ্লেক্স রানার</span>
+                    <h3 style="font-size: 1.85rem; color: #1A110B; margin: 0; line-height: 1.1; font-weight: 800;">টেম্পো / ড্রাইভার</h3>
+                    <span style="font-size: 0.85rem; background: #3F9B5B; color: #FFF8EC; padding: 2px 10px; border-radius: 6px; font-weight: bold;">3D ভিলেজ সিমুলেটর</span>
                   </div>
                 </div>
                 <span style="font-size: 2rem; color: #3F9B5B;">➔</span>
               </div>
 
               <p style="font-size: 1.05rem; color: #222; margin-bottom: 16px; line-height: 1.5;">
-                ১,০০০ কেজি তাজা সবজিভর্তি ট্রাক চালিয়ে বগুড়া থেকে কাওরান বাজার পৌঁছান। পথে চাঁদাবাজদের ব্যারিকেড, রেলক্রসিং ও গরু এড়িয়ে চলুন!
+                সবুজ ধানক্ষেত, পুকুরপাড়, টং দোকান ও বাঁশের বেড়ার মনোরম গ্রামবাংলায় ঐতিহ্যবাহী সবুজ টেম্পো/ই-রিকশা চালান! প্রফেশনাল স্পিডোমিটার, মিনিম্যাপ ও চেকপয়েন্ট।
               </p>
 
               <div style="background: rgba(0,0,0,0.06); padding: 12px 16px; border-radius: 10px; font-size: 0.92rem; color: #111; line-height: 1.6; margin-bottom: 16px;">
-                <div>⚡ <strong>কোর মেকানিক:</strong> লেন পরিবর্তন ও বিকট এয়ার হর্ন</div>
-                <div>💰 <strong>প্রভাব:</strong> যত বেশি চাঁদা দেবেন, সবজির দাম তত বাড়বে!</div>
-                <div>📜 <strong>যোগ্যতা:</strong> কোনো শর্ত নেই, সরাসরি হাইওয়েতে নামুন</div>
+                <div>🎮 <strong>কোর কন্ট্রোল:</strong> W / A / S / D স্টিয়ারিং ও স্পিডোমিটার</div>
+                <div>📍 <strong>অভিযান:</strong> ৫টি চেকপয়েন্ট অতিক্রম করে বিজয় ফটকে পৌঁছানো</div>
+                <div>✨ <strong>ভিজ্যুয়াল:</strong> খাঁটি দেশি রিকশা আর্ট ও গ্রাম্য পরিবেশ</div>
               </div>
             </div>
 
             <button class="btn btn-green" style="width: 100%; pointer-events: none;">
-              ট্রাক ড্রাইভার হিসেবে চালান ➔
+              টেম্পো ড্রাইভার হিসেবে খেলুন ➔
             </button>
           </div>
 

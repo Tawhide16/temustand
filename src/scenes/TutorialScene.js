@@ -73,42 +73,42 @@ export class TutorialScene {
             <!-- Driver Step 1 -->
             <div style="background: #FFF8EC; color: #1A110B; padding: 22px; border-radius: 16px; border-top: 6px solid #2E86AB; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 8px 20px rgba(0,0,0,0.3);">
               <div>
-                <div style="font-size: 3rem; margin-bottom: 10px;">↔️</div>
-                <strong style="font-size: 1.3rem; display: block; color: #1A110B; margin-bottom: 6px;">১. লেন পরিবর্তন</strong>
+                <div style="font-size: 3rem; margin-bottom: 10px;">⚡</div>
+                <strong style="font-size: 1.3rem; display: block; color: #1A110B; margin-bottom: 6px;">১. এক্সিলারেশন ও ব্রেক</strong>
                 <p style="font-size: 0.95rem; color: #444; line-height: 1.5;">
-                  ডেস্কটপে কীবোর্ডের <span class="kbd-hint" style="color:#111; border-color:#888;">A</span> ও <span class="kbd-hint" style="color:#111; border-color:#888;">D</span> অথবা <span class="kbd-hint" style="color:#111; border-color:#888;">◀</span> ও <span class="kbd-hint" style="color:#111; border-color:#888;">▶</span> তীর কী দিয়ে হাইওয়েতে লেন পরিবর্তন করুন।
+                  গাড়ি চালাতে কীবোর্ডের <span class="kbd-hint" style="color:#111; border-color:#888;">W</span> বা <span class="kbd-hint" style="color:#111; border-color:#888;">⬆️</span> চেপে রাখুন অথবা <strong>RACE</strong> প্যাডেল চাপুন। ব্রেক বা রিভার্সে <span class="kbd-hint" style="color:#111; border-color:#888;">S</span> / <span class="kbd-hint" style="color:#111; border-color:#888;">⬇️</span>।
                 </p>
               </div>
               <div style="margin-top: 14px; font-size: 0.82rem; background: rgba(0,0,0,0.06); padding: 6px 10px; border-radius: 6px; font-weight: 600;">
-                মাউস দিয়ে স্ক্রিনের বাটনেও ক্লিক করা যায়
+                Shift চাপলে টার্বো স্পিড বুস্ট পাবেন
               </div>
             </div>
 
             <!-- Driver Step 2 -->
             <div style="background: #FFF8EC; color: #1A110B; padding: 22px; border-radius: 16px; border-top: 6px solid #F5A623; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 8px 20px rgba(0,0,0,0.3);">
               <div>
-                <div style="font-size: 3rem; margin-bottom: 10px;">📢</div>
-                <strong style="font-size: 1.3rem; display: block; color: #1A110B; margin-bottom: 6px;">২. বিকট এয়ার হর্ন</strong>
+                <div style="font-size: 3rem; margin-bottom: 10px;">🛞</div>
+                <strong style="font-size: 1.3rem; display: block; color: #1A110B; margin-bottom: 6px;">২. স্টিয়ারিং হুইল</strong>
                 <p style="font-size: 0.95rem; color: #444; line-height: 1.5;">
-                  হাইওয়েতে গরু বা বাধা এলে কীবোর্ডের <span class="kbd-hint" style="color:#111; border-color:#888;">Space</span> বা <span class="kbd-hint" style="color:#111; border-color:#888;">H</span> চাপুন! বিকট হর্নের আওয়াজে গরু রাস্তা ছেড়ে দৌড় দেবে।
+                  কীবোর্ডের <span class="kbd-hint" style="color:#111; border-color:#888;">A</span> ও <span class="kbd-hint" style="color:#111; border-color:#888;">D</span> অথবা বাঁয়ে-ডানে তীর কী চাপুন। চাইলে স্ক্রিনের স্টিয়ারিং হুইলও মাউস দিয়ে ঘোরাতে পারেন।
                 </p>
               </div>
               <div style="margin-top: 14px; font-size: 0.82rem; background: rgba(245,166,35,0.15); color: #B37107; padding: 6px 10px; border-radius: 6px; font-weight: 700;">
-                গরুকে ধাক্কা দিলে সবজি ও ট্রাকের ক্ষতি!
+                রাস্তার বাইরে কাঁচা মাটিতে নামলে গতি কমবে!
               </div>
             </div>
 
             <!-- Driver Step 3 -->
-            <div style="background: #FFF8EC; color: #1A110B; padding: 22px; border-radius: 16px; border-top: 6px solid #C8442B; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 8px 20px rgba(0,0,0,0.3);">
+            <div style="background: #FFF8EC; color: #1A110B; padding: 22px; border-radius: 16px; border-top: 6px solid #3F9B5B; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 8px 20px rgba(0,0,0,0.3);">
               <div>
-                <div style="font-size: 3rem; margin-bottom: 10px;">💰</div>
-                <strong style="font-size: 1.3rem; display: block; color: #1A110B; margin-bottom: 6px;">৩. চাঁদার ব্যারিকেড সিদ্ধান্ত</strong>
+                <div style="font-size: 3rem; margin-bottom: 10px;">🏁</div>
+                <strong style="font-size: 1.3rem; display: block; color: #1A110B; margin-bottom: 6px;">৩. ৫টি চেকপয়েন্ট ও ফিনিশ</strong>
                 <p style="font-size: 0.95rem; color: #444; line-height: 1.5;">
-                  চেকপোস্টে চাঁদা দেবেন নাকি ধোঁয়া উড়িয়ে পালাবেন? বেশি চাঁদা দিলে কাওরান বাজারে সবজির দাম প্রতি কেজিতে বেড়ে যাবে!
+                  মিনি-ম্যাপ ও নিয়ন হলুদ অ্যারো পথ নির্দেশ করবে। ধানক্ষেত, পুকুরপাড় ও টং দোকান পেরিয়ে ৫টি চেকপয়েন্ট পাড়ি দিয়ে বিজয় ফটকে পৌঁছান!
                 </p>
               </div>
-              <div style="margin-top: 14px; font-size: 0.82rem; background: rgba(200,68,43,0.1); color: #C8442B; padding: 6px 10px; border-radius: 6px; font-weight: 700;">
-                পালাতে গিয়ে ধরা পড়লে ডাবল জরিমানা!
+              <div style="margin-top: 14px; font-size: 0.82rem; background: rgba(63,155,91,0.1); color: #2E7944; padding: 6px 10px; border-radius: 6px; font-weight: 700;">
+                Space চাপলে হর্ন বাজবে, ESC চাপলে পজ
               </div>
             </div>
           `}

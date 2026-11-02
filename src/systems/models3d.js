@@ -10,7 +10,12 @@ import {
   createWaterTexture,
   createAirportRunwayTexture,
   createBimanLiveryTexture,
-  createBanglaBillboardTexture
+  createBanglaBillboardTexture,
+  createRickshawArtBackTexture,
+  createCorrugatedTinRoofTexture,
+  createSnackPacketsTexture,
+  createRicePaddyTexture,
+  createVillageAsphaltRoadTexture
 } from './textureGenerator.js';
 
 // Procedural 3D Low-Poly Mesh Builder for Bangladeshi Vehicles and Highway Props
@@ -1459,5 +1464,955 @@ export function buildMarketDestination3D() {
 
   return market;
 }
+
+// =========================================================================
+// 🛺 BANGLADESHI E-RICKSHAW / TEMPO 3D MODEL (AUTHENTIC MATCH TO REFERENCE)
+// =========================================================================
+export function buildTempoRickshaw3D(primaryColor = '#0E7C3A') {
+  const root = new THREE.Group();
+
+  // Materials
+  const greenBodyMat = new THREE.MeshStandardMaterial({
+    color: primaryColor,
+    roughness: 0.35,
+    metalness: 0.15
+  });
+  const blackCanopyMat = new THREE.MeshStandardMaterial({
+    color: '#1C1C1C',
+    roughness: 0.9,
+    metalness: 0.05
+  });
+  const darkMetalMat = new THREE.MeshStandardMaterial({
+    color: '#222222',
+    roughness: 0.6,
+    metalness: 0.4
+  });
+  const chromeMat = new THREE.MeshStandardMaterial({
+    color: '#F0F0F0',
+    roughness: 0.15,
+    metalness: 0.95
+  });
+  const tireRubberMat = new THREE.MeshStandardMaterial({
+    color: '#151515',
+    roughness: 0.85,
+    metalness: 0.1
+  });
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: '#BEE5F5',
+    transparent: true,
+    opacity: 0.55,
+    roughness: 0.1,
+    transmission: 0.9,
+    thickness: 0.2
+  });
+  const shirtMat = new THREE.MeshLambertMaterial({ color: '#7EB8DA' }); // Light blue shirt (matching reference!)
+  const skinMat = new THREE.MeshLambertMaterial({ color: '#8D5524' });
+  const hairMat = new THREE.MeshLambertMaterial({ color: '#1A110B' });
+  const redBrakeMat = new THREE.MeshStandardMaterial({
+    color: '#E53935',
+    emissive: '#B71C1C',
+    emissiveIntensity: 0.4
+  });
+  const amberTurnMat = new THREE.MeshStandardMaterial({
+    color: '#FFA000',
+    emissive: '#FF6F00',
+    emissiveIntensity: 0.3
+  });
+  const rickshawArtMat = new THREE.MeshStandardMaterial({
+    map: createRickshawArtBackTexture(primaryColor),
+    roughness: 0.35,
+    metalness: 0.1
+  });
+
+  // 1. Lower Chassis & Battery Enclosure
+  const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.28, 2.7), darkMetalMat);
+  chassis.position.set(0, 0.42, 0);
+  chassis.castShadow = true;
+  root.add(chassis);
+
+  // 2. Wheels Setup (1 Front, 2 Rear)
+  const wheels = [];
+
+  const createWheel = (radius = 0.34, width = 0.20) => {
+    const wheelGroup = new THREE.Group();
+    // Rubber tire
+    const tireGeo = new THREE.CylinderGeometry(radius, radius, width, 18);
+    tireGeo.rotateZ(Math.PI / 2);
+    const tire = new THREE.Mesh(tireGeo, tireRubberMat);
+    tire.castShadow = true;
+    wheelGroup.add(tire);
+    // Steel rim
+    const rimGeo = new THREE.CylinderGeometry(radius * 0.62, radius * 0.62, width * 1.05, 12);
+    rimGeo.rotateZ(Math.PI / 2);
+    const rim = new THREE.Mesh(rimGeo, chromeMat);
+    wheelGroup.add(rim);
+    // Central hubcap nut
+    const nutGeo = new THREE.CylinderGeometry(0.06, 0.06, width * 1.25, 8);
+    nutGeo.rotateZ(Math.PI / 2);
+    const nut = new THREE.Mesh(nutGeo, darkMetalMat);
+    wheelGroup.add(nut);
+    return wheelGroup;
+  };
+
+  // Rear Wheels
+  const rearLeftWheel = createWheel();
+  rearLeftWheel.position.set(-0.74, 0.35, -0.82);
+  const rearRightWheel = createWheel();
+  rearRightWheel.position.set(0.74, 0.35, -0.82);
+  root.add(rearLeftWheel, rearRightWheel);
+  wheels.push(rearLeftWheel, rearRightWheel);
+
+  // Rear Axle Bar
+  const axleGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.48, 8);
+  axleGeo.rotateZ(Math.PI / 2);
+  const rearAxle = new THREE.Mesh(axleGeo, darkMetalMat);
+  rearAxle.position.set(0, 0.35, -0.82);
+  root.add(rearAxle);
+
+  // Front Steer Group (Rotates left/right with steering)
+  const frontSteerGroup = new THREE.Group();
+  frontSteerGroup.position.set(0, 0.35, 1.25);
+  const frontWheel = createWheel();
+  frontSteerGroup.add(frontWheel);
+  wheels.push(frontWheel);
+
+  // Front Fork Struts
+  const forkL = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.72, 8), chromeMat);
+  forkL.position.set(-0.14, 0.28, 0);
+  const forkR = forkL.clone();
+  forkR.position.x = 0.14;
+  frontSteerGroup.add(forkL, forkR);
+
+  // Front Mudguard
+  const mudguardGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.24, 14, 1, false, 0, Math.PI * 0.95);
+  mudguardGeo.rotateZ(Math.PI / 2);
+  mudguardGeo.rotateY(Math.PI * 0.4);
+  const mudguard = new THREE.Mesh(mudguardGeo, greenBodyMat);
+  mudguard.position.set(0, 0.06, 0);
+  frontSteerGroup.add(mudguard);
+
+  // Front Chrome Headlight
+  const headlightGeo = new THREE.CylinderGeometry(0.14, 0.12, 0.15, 16);
+  headlightGeo.rotateX(Math.PI / 2);
+  const headlightHousing = new THREE.Mesh(headlightGeo, chromeMat);
+  headlightHousing.position.set(0, 0.58, 0.22);
+  const headlightLens = new THREE.Mesh(
+    new THREE.CircleGeometry(0.12, 16),
+    new THREE.MeshBasicMaterial({ color: '#FFFDE7' })
+  );
+  headlightLens.position.set(0, 0.58, 0.3);
+  frontSteerGroup.add(headlightHousing, headlightLens);
+
+  // Handlebars with grips
+  const handleGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.72, 8);
+  handleGeo.rotateZ(Math.PI / 2);
+  const handleBar = new THREE.Mesh(handleGeo, chromeMat);
+  handleBar.position.set(0, 0.74, -0.05);
+  frontSteerGroup.add(handleBar);
+
+  root.add(frontSteerGroup);
+
+  // 3. Main Green Body Panels
+  // Passenger Lower Body Tub
+  const tubGeo = new THREE.BoxGeometry(1.52, 0.72, 1.8);
+  const tub = new THREE.Mesh(tubGeo, greenBodyMat);
+  tub.position.set(0, 0.88, -0.42);
+  tub.castShadow = true;
+  root.add(tub);
+
+  // Side Passenger Door Openings / Cutout Trim (Chrome Handrails)
+  const railGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.78, 8);
+  const railL1 = new THREE.Mesh(railGeo, chromeMat);
+  railL1.position.set(-0.78, 1.25, -0.85);
+  const railL2 = railL1.clone();
+  railL2.position.z = 0.15;
+  const railR1 = railL1.clone();
+  railR1.position.x = 0.78;
+  const railR2 = railL2.clone();
+  railR2.position.x = 0.78;
+  root.add(railL1, railL2, railR1, railR2);
+
+  // Footboard Steps on Sides
+  const stepL = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.05, 0.9), darkMetalMat);
+  stepL.position.set(-0.84, 0.44, -0.35);
+  const stepR = stepL.clone();
+  stepR.position.x = 0.84;
+  root.add(stepL, stepR);
+
+  // Front Driver Cabin Apron & Cowl
+  const frontApron = new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.78, 0.8), greenBodyMat);
+  frontApron.position.set(0, 0.92, 0.82);
+  frontApron.castShadow = true;
+  root.add(frontApron);
+
+  // Front Windshield
+  const windscreenFrame = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.68, 0.06), darkMetalMat);
+  windscreenFrame.position.set(0, 1.62, 0.75);
+  const windscreenGlass = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.6), glassMat);
+  windscreenGlass.position.set(0, 1.62, 0.785);
+  root.add(windscreenFrame, windscreenGlass);
+
+  // Windshield Wiper
+  const wiperGeo = new THREE.BoxGeometry(0.02, 0.35, 0.02);
+  const wiper = new THREE.Mesh(wiperGeo, darkMetalMat);
+  wiper.position.set(0.1, 1.64, 0.8);
+  wiper.rotation.z = -0.3;
+  root.add(wiper);
+
+  // 4. Seated Driver Model (Viewed from Behind Through the Rear Window!)
+  const driverGroup = new THREE.Group();
+  driverGroup.position.set(0, 1.05, 0.48);
+
+  // Driver Seat Cushion
+  const seatGeo = new THREE.BoxGeometry(0.68, 0.22, 0.48);
+  const seatMesh = new THREE.Mesh(seatGeo, darkMetalMat);
+  seatMesh.position.set(0, -0.05, 0);
+  driverGroup.add(seatMesh);
+
+  // Driver Torso (in light-blue collared shirt, just like the reference image!)
+  const torsoGeo = new THREE.BoxGeometry(0.48, 0.58, 0.28);
+  const torso = new THREE.Mesh(torsoGeo, shirtMat);
+  torso.position.set(0, 0.32, 0);
+  torso.castShadow = true;
+  driverGroup.add(torso);
+
+  // Shirt Collar
+  const collarGeo = new THREE.BoxGeometry(0.24, 0.06, 0.2);
+  const collar = new THREE.Mesh(collarGeo, shirtMat);
+  collar.position.set(0, 0.62, 0);
+  driverGroup.add(collar);
+
+  // Driver Head & Hair
+  const headGeo = new THREE.SphereGeometry(0.14, 12, 12);
+  headGeo.scale(1.0, 1.15, 0.95);
+  const head = new THREE.Mesh(headGeo, skinMat);
+  head.position.set(0, 0.78, 0);
+  driverGroup.add(head);
+
+  // Black Hair on head
+  const hairGeo = new THREE.SphereGeometry(0.146, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.55);
+  const hair = new THREE.Mesh(hairGeo, hairMat);
+  hair.position.set(0, 0.81, -0.02);
+  driverGroup.add(hair);
+
+  // Driver Arms reaching forward to steering
+  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.42), shirtMat);
+  armL.position.set(-0.25, 0.38, 0.22);
+  armL.rotation.x = 0.2;
+  const armR = armL.clone();
+  armR.position.x = 0.25;
+  driverGroup.add(armL, armR);
+
+  root.add(driverGroup);
+
+  // 5. Authentic Rear Rickshaw Art Tailgate Panel (Back of Passenger Tub)
+  const rearArtPanel = new THREE.Mesh(new THREE.PlaneGeometry(1.48, 0.72), rickshawArtMat);
+  rearArtPanel.position.set(0, 0.88, -1.325);
+  rearArtPanel.rotation.y = Math.PI; // Face rearwards
+  root.add(rearArtPanel);
+
+  // 3D Rear Chrome Tubular Bumper with Curved Ends
+  const bumperGroup = new THREE.Group();
+  bumperGroup.position.set(0, 0.44, -1.38);
+
+  const mainBumperGeo = new THREE.CylinderGeometry(0.035, 0.035, 1.54, 12);
+  mainBumperGeo.rotateZ(Math.PI / 2);
+  const mainBumper = new THREE.Mesh(mainBumperGeo, chromeMat);
+  bumperGroup.add(mainBumper);
+
+  // Bumper corner hooks
+  const hookL = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.22, 8), chromeMat);
+  hookL.position.set(-0.77, 0, 0.1);
+  hookL.rotation.x = Math.PI / 2;
+  const hookR = hookL.clone();
+  hookR.position.x = 0.77;
+  bumperGroup.add(hookL, hookR);
+
+  // Bumper Mount Brackets
+  const mountL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.15), darkMetalMat);
+  mountL.position.set(-0.45, 0.04, 0.06);
+  const mountR = mountL.clone();
+  mountR.position.x = 0.45;
+  bumperGroup.add(mountL, mountR);
+
+  root.add(bumperGroup);
+
+  // 3D Tail Lights (Left & Right - Amber turn on top, Red brake on bottom)
+  const tailLightL = new THREE.Group();
+  tailLightL.position.set(-0.62, 0.92, -1.33);
+  const lampBase = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.26, 0.05), darkMetalMat);
+  const amberMesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.11, 0.06), amberTurnMat);
+  amberMesh.position.set(0, 0.06, 0.01);
+  const redMesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.11, 0.06), redBrakeMat);
+  redMesh.position.set(0, -0.06, 0.01);
+  tailLightL.add(lampBase, amberMesh, redMesh);
+
+  const tailLightR = tailLightL.clone();
+  tailLightR.position.x = 0.62;
+  root.add(tailLightL, tailLightR);
+
+  // 6. Black Fabric Passenger Roof Canopy (Soft Top with Rear Window Opening)
+  const canopyGroup = new THREE.Group();
+  canopyGroup.position.set(0, 1.88, -0.32);
+
+  // Curved Fabric Roof (Arched cylinder segment)
+  const roofGeo = new THREE.CylinderGeometry(0.95, 0.95, 2.3, 20, 1, false, Math.PI * 0.2, Math.PI * 0.6);
+  roofGeo.rotateZ(Math.PI / 2);
+  roofGeo.scale(0.82, 0.35, 1.0);
+  const roof = new THREE.Mesh(roofGeo, blackCanopyMat);
+  roof.position.set(0, 0.26, 0);
+  roof.castShadow = true;
+  canopyGroup.add(roof);
+
+  // Rear Fabric Wall with Clear Window Cutout (As seen in reference photo!)
+  // Left side wall of rear fabric
+  const rearSideL = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.68, 0.08), blackCanopyMat);
+  rearSideL.position.set(-0.58, -0.15, -1.02);
+  // Right side wall of rear fabric
+  const rearSideR = rearSideL.clone();
+  rearSideR.position.x = 0.58;
+  // Top fabric header above rear window
+  const rearTop = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.22, 0.08), blackCanopyMat);
+  rearTop.position.set(0, 0.16, -1.02);
+  // Bottom fabric ledge below rear window
+  const rearBottom = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.14, 0.08), blackCanopyMat);
+  rearBottom.position.set(0, -0.42, -1.02);
+  canopyGroup.add(rearSideL, rearSideR, rearTop, rearBottom);
+
+  // Transparent Rear Window Glass in the center opening
+  const rearWindow = new THREE.Mesh(new THREE.PlaneGeometry(0.82, 0.44), glassMat);
+  rearWindow.position.set(0, -0.14, -1.02);
+  canopyGroup.add(rearWindow);
+
+  // Chrome Canopy Vertical Tubular Posts (4 support pillars)
+  const postGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.88, 8);
+  const postFL = new THREE.Mesh(postGeo, chromeMat);
+  postFL.position.set(-0.68, -0.42, 0.85);
+  const postFR = postFL.clone();
+  postFR.position.x = 0.68;
+  const postBL = postFL.clone();
+  postBL.position.z = -0.98;
+  const postBR = postFR.clone();
+  postBR.position.z = -0.98;
+  canopyGroup.add(postFL, postFR, postBL, postBR);
+
+  root.add(canopyGroup);
+
+  // Store references for dynamic animation
+  root.userData = {
+    type: 'tempo',
+    wheels: wheels,
+    frontSteerGroup: frontSteerGroup,
+    tailLights: [tailLightL, tailLightR],
+    driverTorso: torso
+  };
+
+  return root;
+}
+
+// =========================================================================
+// 🎋 AUTHENTIC BANGLADESHI SPLIT-BAMBOO FENCE (বাঁশের বেড়া)
+// =========================================================================
+export function buildBambooFence3D(length = 24) {
+  const fenceGroup = new THREE.Group();
+  const bambooMat = new THREE.MeshStandardMaterial({
+    color: '#D4C28D',
+    roughness: 0.8,
+    metalness: 0.05
+  });
+  const darkBambooMat = new THREE.MeshStandardMaterial({
+    color: '#8D7B4F',
+    roughness: 0.9,
+    metalness: 0.02
+  });
+
+  const postSpacing = 2.4;
+  const postCount = Math.floor(length / postSpacing);
+
+  // Vertical Bamboo Stakes
+  for (let i = 0; i <= postCount; i++) {
+    const postZ = -i * postSpacing;
+    const postHeight = 1.1 + (Math.random() - 0.5) * 0.15;
+    const postGeo = new THREE.CylinderGeometry(0.045, 0.05, postHeight, 8);
+    const post = new THREE.Mesh(postGeo, bambooMat);
+    post.position.set((Math.random() - 0.5) * 0.05, postHeight / 2, postZ);
+    post.rotation.z = (Math.random() - 0.5) * 0.04;
+    post.castShadow = true;
+    fenceGroup.add(post);
+
+    // Bamboo Node Ring detail
+    const nodeRing = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.03, 8), darkBambooMat);
+    nodeRing.position.set(post.position.x, postHeight * 0.6, postZ);
+    fenceGroup.add(nodeRing);
+  }
+
+  // 3 Horizontal Bamboo Split Rails
+  const railHeights = [0.28, 0.62, 0.95];
+  railHeights.forEach(h => {
+    const railGeo = new THREE.CylinderGeometry(0.035, 0.035, length, 8);
+    railGeo.rotateX(Math.PI / 2);
+    const rail = new THREE.Mesh(railGeo, bambooMat);
+    rail.position.set(0.04, h, -length / 2);
+    rail.castShadow = true;
+    fenceGroup.add(rail);
+  });
+
+  // Diagonal Cross-Ties (Authentic Bengali criss-cross woven bamboo)
+  for (let i = 0; i < postCount; i++) {
+    const pz1 = -i * postSpacing;
+    const pz2 = -(i + 1) * postSpacing;
+    const diagGeo = new THREE.CylinderGeometry(0.025, 0.025, postSpacing * 1.25, 6);
+    diagGeo.rotateX(Math.PI * 0.35);
+    const diag = new THREE.Mesh(diagGeo, darkBambooMat);
+    diag.position.set(-0.02, 0.62, (pz1 + pz2) / 2);
+    fenceGroup.add(diag);
+  }
+
+  return fenceGroup;
+}
+
+// =========================================================================
+// ⚡ BANGLADESHI CONCRETE ELECTRIC POLE & OVERHEAD WIRES (বৈদ্যুতিক খুঁটি)
+// =========================================================================
+export function buildElectricPoleWithWires3D(wireDistance = 45) {
+  const poleGroup = new THREE.Group();
+
+  const concreteMat = new THREE.MeshStandardMaterial({
+    color: '#B0A89C',
+    roughness: 0.92,
+    metalness: 0.05
+  });
+  const crossarmMat = new THREE.MeshStandardMaterial({
+    color: '#4E342E',
+    roughness: 0.85,
+    metalness: 0.1
+  });
+  const insulatorMat = new THREE.MeshStandardMaterial({
+    color: '#ECEFF1',
+    roughness: 0.2,
+    metalness: 0.1
+  });
+  const wireMat = new THREE.MeshBasicMaterial({ color: '#1A1A1A' });
+
+  // Main Tapered Concrete Pole (Height 9.5m)
+  const poleGeo = new THREE.CylinderGeometry(0.18, 0.28, 9.5, 10);
+  const pole = new THREE.Mesh(poleGeo, concreteMat);
+  pole.position.set(0, 4.75, 0);
+  pole.castShadow = true;
+  poleGroup.add(pole);
+
+  // Lower Crossarm
+  const arm1Geo = new THREE.BoxGeometry(2.4, 0.12, 0.12);
+  const arm1 = new THREE.Mesh(arm1Geo, crossarmMat);
+  arm1.position.set(0, 8.4, 0);
+  poleGroup.add(arm1);
+
+  // Upper Crossarm
+  const arm2Geo = new THREE.BoxGeometry(1.8, 0.12, 0.12);
+  const arm2 = new THREE.Mesh(arm2Geo, crossarmMat);
+  arm2.position.set(0, 9.2, 0);
+  poleGroup.add(arm2);
+
+  // Ceramic Bell Insulators
+  const insulatorOffsets = [-1.05, 1.05, -0.75, 0.75];
+  const insulatorHeights = [8.55, 8.55, 9.35, 9.35];
+
+  for (let i = 0; i < 4; i++) {
+    const insGeo = new THREE.CylinderGeometry(0.04, 0.06, 0.18, 8);
+    const ins = new THREE.Mesh(insGeo, insulatorMat);
+    ins.position.set(insulatorOffsets[i], insulatorHeights[i], 0);
+    poleGroup.add(ins);
+  }
+
+  // Drooping Overhead Transmission Cables stretching to next pole
+  if (wireDistance > 0) {
+    const wireOffsets = [-1.05, 1.05, 0];
+    const wireY = 8.55;
+
+    wireOffsets.forEach(xOffset => {
+      // Create gentle catenary curve with 12 segments
+      const points = [];
+      const segments = 12;
+      for (let s = 0; s <= segments; s++) {
+        const t = s / segments;
+        const z = -t * wireDistance;
+        // Catenary sag equation: max sag in the middle
+        const sag = Math.sin(t * Math.PI) * 0.95;
+        points.push(new THREE.Vector3(xOffset, wireY - sag, z));
+      }
+      const curve = new THREE.CatmullRomCurve3(points);
+      const wireGeo = new THREE.TubeGeometry(curve, 12, 0.015, 5, false);
+      const wire = new THREE.Mesh(wireGeo, wireMat);
+      poleGroup.add(wire);
+    });
+  }
+
+  return poleGroup;
+}
+
+// =========================================================================
+// 🏠 BANGLADESHI VILLAGE CORRUGATED TIN HOUSE (টিনের বাড়ি / কুঁড়েঘর)
+// =========================================================================
+export function buildVillageTinHouse3D() {
+  const house = new THREE.Group();
+
+  const tinRoofMat = new THREE.MeshStandardMaterial({
+    map: createCorrugatedTinRoofTexture(),
+    roughness: 0.65,
+    metalness: 0.45
+  });
+  const wallMat = new THREE.MeshStandardMaterial({
+    color: '#D7CCC8',
+    roughness: 0.95,
+    metalness: 0.02
+  });
+  const woodMat = new THREE.MeshStandardMaterial({
+    color: '#5D4037',
+    roughness: 0.85,
+    metalness: 0.1
+  });
+  const windowBlueMat = new THREE.MeshStandardMaterial({
+    color: '#1E88E5',
+    roughness: 0.4
+  });
+
+  // Earthen / Concrete Raised Plinth
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(7.8, 0.55, 6.2), wallMat);
+  plinth.position.set(0, 0.27, 0);
+  house.add(plinth);
+
+  // Main Mud/Tin Wall Structure
+  const walls = new THREE.Mesh(new THREE.BoxGeometry(7.0, 2.8, 5.4), wallMat);
+  walls.position.set(0, 1.95, 0);
+  walls.castShadow = true;
+  house.add(walls);
+
+  // Gable Pitched Corrugated Tin Roof
+  // Left Roof Slope
+  const roofL = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 7.6), tinRoofMat);
+  roofL.position.set(-1.45, 3.9, 0);
+  roofL.rotation.y = Math.PI / 2;
+  roofL.rotation.x = Math.PI * 0.2;
+  roofL.castShadow = true;
+  // Right Roof Slope
+  const roofR = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 7.6), tinRoofMat);
+  roofR.position.set(1.45, 3.9, 0);
+  roofR.rotation.y = Math.PI / 2;
+  roofR.rotation.x = -Math.PI * 0.2;
+  roofR.castShadow = true;
+  house.add(roofL, roofR);
+
+  // Roof Ridge Cap (Tin peak cap)
+  const ridge = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 7.6, 8), woodMat);
+  ridge.rotateX(Math.PI / 2);
+  ridge.position.set(0, 4.45, 0);
+  house.add(ridge);
+
+  // Wooden Door (Traditional Bengali panelled door)
+  const door = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.1, 0.1), woodMat);
+  door.position.set(0, 1.6, 2.72);
+  house.add(door);
+
+  // Shuttered Wooden Windows
+  const winL = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.1), windowBlueMat);
+  winL.position.set(-2.2, 2.1, 2.72);
+  const winR = winL.clone();
+  winR.position.x = 2.2;
+  house.add(winL, winR);
+
+  // Veranda Pillars (Porch posts)
+  const pillarGeo = new THREE.CylinderGeometry(0.08, 0.08, 2.4, 8);
+  const pil1 = new THREE.Mesh(pillarGeo, woodMat);
+  pil1.position.set(-3.2, 1.75, 3.2);
+  const pil2 = pil1.clone();
+  pil2.position.x = 3.2;
+  house.add(pil1, pil2);
+
+  return house;
+}
+
+// =========================================================================
+// 🏪 ENHANCED BANGLADESHI TEA STALL & GENERAL STORE (চায়ের টং দোকান)
+// =========================================================================
+export function buildVillageTeaStallEnhanced3D() {
+  const stall = new THREE.Group();
+
+  const tinRoofMat = new THREE.MeshStandardMaterial({
+    map: createCorrugatedTinRoofTexture(),
+    roughness: 0.6,
+    metalness: 0.5
+  });
+  const woodMat = new THREE.MeshStandardMaterial({
+    color: '#6D4C41',
+    roughness: 0.9,
+    metalness: 0.05
+  });
+  const counterMat = new THREE.MeshStandardMaterial({
+    color: '#8D6E63',
+    roughness: 0.85
+  });
+  const kettleChrome = new THREE.MeshStandardMaterial({
+    color: '#E0E0E0',
+    roughness: 0.2,
+    metalness: 0.9
+  });
+
+  // Base platform
+  const base = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.35, 4.4), woodMat);
+  base.position.set(0, 0.17, 0);
+  stall.add(base);
+
+  // Back and side wooden slat walls
+  const backWall = new THREE.Mesh(new THREE.BoxGeometry(5.0, 2.5, 0.15), woodMat);
+  backWall.position.set(0, 1.5, -2.0);
+  stall.add(backWall);
+
+  // Wooden Counter Desk
+  const counter = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.0, 0.8), counterMat);
+  counter.position.set(0, 0.85, 0.4);
+  counter.castShadow = true;
+  stall.add(counter);
+
+  // Slanted Corrugated Tin Awning / Roof
+  const roof = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 4.8), tinRoofMat);
+  roof.position.set(0, 2.9, 0.1);
+  roof.rotation.x = Math.PI * 0.12;
+  roof.castShadow = true;
+  stall.add(roof);
+
+  // Roof Wooden Corner Posts
+  const postGeo = new THREE.CylinderGeometry(0.07, 0.07, 2.7, 8);
+  const p1 = new THREE.Mesh(postGeo, woodMat);
+  p1.position.set(-2.4, 1.5, 1.9);
+  const p2 = p1.clone();
+  p2.position.x = 2.4;
+  stall.add(p1, p2);
+
+  // Strings of Hanging Snack Packets (chips, chanachur, biscuits - just like reference!)
+  const snackTex = createSnackPacketsTexture();
+  const snackBanner = new THREE.Mesh(
+    new THREE.PlaneGeometry(4.2, 1.8),
+    new THREE.MeshBasicMaterial({ map: snackTex, transparent: true })
+  );
+  snackBanner.position.set(0, 2.05, 0.65);
+  stall.add(snackBanner);
+
+  // Iconic Aluminum Tea Kettle on Counter
+  const kettleBody = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.38, 12), kettleChrome);
+  kettleBody.position.set(-1.1, 1.54, 0.4);
+  const kettleSpout = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.24, 8), kettleChrome);
+  kettleSpout.position.set(-0.9, 1.62, 0.4);
+  kettleSpout.rotation.z = -0.55;
+  stall.add(kettleBody, kettleSpout);
+
+  // Glass Jars on Counter (For biscuits and tea leaves)
+  for (let j = 0; j < 3; j++) {
+    const jar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12, 0.12, 0.32, 10),
+      new THREE.MeshStandardMaterial({ color: '#FFF8E1', roughness: 0.2, transparent: true, opacity: 0.7 })
+    );
+    jar.position.set(0.6 + j * 0.35, 1.51, 0.4);
+    stall.add(jar);
+  }
+
+  // Wooden Bench Outside (টংয়ের কাঠের বেঞ্চ - exactly matching reference photo!)
+  const benchGroup = new THREE.Group();
+  benchGroup.position.set(0, 0, 2.5);
+  // Bench plank
+  const plank = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.1, 0.55), woodMat);
+  plank.position.set(0, 0.52, 0);
+  plank.castShadow = true;
+  benchGroup.add(plank);
+  // Bench 4 wooden legs
+  const legGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.5, 6);
+  const leg1 = new THREE.Mesh(legGeo, woodMat);
+  leg1.position.set(-1.6, 0.25, 0.2);
+  const leg2 = leg1.clone();
+  leg2.position.z = -0.2;
+  const leg3 = leg1.clone();
+  leg3.position.x = 1.6;
+  const leg4 = leg2.clone();
+  leg4.position.x = 1.6;
+  benchGroup.add(leg1, leg2, leg3, leg4);
+  stall.add(benchGroup);
+
+  return stall;
+}
+
+// =========================================================================
+// 🌊 VILLAGE POND WATER WITH WATER LILY PADS (পুকুর ও শাপলা)
+// =========================================================================
+export function buildVillagePondSide3D(width = 38, length = 65) {
+  const pond = new THREE.Group();
+
+  // Water Plane with Realistic Reflective Material
+  const waterGeo = new THREE.PlaneGeometry(width, length, 16, 16);
+  const waterMat = new THREE.MeshStandardMaterial({
+    color: '#1565C0',
+    roughness: 0.12,
+    metalness: 0.75,
+    transparent: true,
+    opacity: 0.88
+  });
+  const waterMesh = new THREE.Mesh(waterGeo, waterMat);
+  waterMesh.rotation.x = -Math.PI / 2;
+  waterMesh.position.set(0, -0.15, 0);
+  pond.add(waterMesh);
+
+  // Water Lily / Lotus Pads (Shapla Pata) floating on pond surface
+  const padMat = new THREE.MeshStandardMaterial({ color: '#2E7D32', roughness: 0.6 });
+  const flowerMat = new THREE.MeshStandardMaterial({ color: '#E91E63', roughness: 0.4 });
+
+  for (let i = 0; i < 22; i++) {
+    const px = (Math.random() - 0.5) * (width * 0.75);
+    const pz = (Math.random() - 0.5) * (length * 0.8);
+    const padSize = 0.6 + Math.random() * 0.5;
+
+    const pad = new THREE.Mesh(new THREE.CircleGeometry(padSize, 10), padMat);
+    pad.rotation.x = -Math.PI / 2;
+    pad.position.set(px, -0.12, pz);
+    pond.add(pad);
+
+    // Some pads have blooming Shapla flowers
+    if (i % 3 === 0) {
+      const flw = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.25, 8), flowerMat);
+      flw.position.set(px, 0.02, pz);
+      pond.add(flw);
+    }
+  }
+
+  return pond;
+}
+
+// =========================================================================
+// 🌉 CANAL CULVERT BRIDGE WITH SAFETY RAILINGS (খালের সাঁকো / কালভার্ট ব্রিজ)
+// =========================================================================
+export function buildCanalBridgeSegment3D(width = 11, length = 18) {
+  const bridge = new THREE.Group();
+
+  const concreteMat = new THREE.MeshStandardMaterial({
+    color: '#ECEFF1',
+    roughness: 0.85
+  });
+  const blackStripeMat = new THREE.MeshStandardMaterial({
+    color: '#212121',
+    roughness: 0.8
+  });
+
+  // Left and Right Concrete Parapet Railings
+  const railingHalfWidth = width / 2 + 0.2;
+  [-railingHalfWidth, railingHalfWidth].forEach(x => {
+    // Continuous concrete base curb
+    const curb = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, length), concreteMat);
+    curb.position.set(x, 0.2, 0);
+    curb.castShadow = true;
+    bridge.add(curb);
+
+    // Parapet posts with black & white safety bands (Bangladesh Highway style)
+    const postCount = 6;
+    for (let p = 0; p <= postCount; p++) {
+      const z = -length / 2 + (p / postCount) * length;
+      const mat = p % 2 === 0 ? concreteMat : blackStripeMat;
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.95, 0.35), mat);
+      post.position.set(x, 0.65, z);
+      post.castShadow = true;
+      bridge.add(post);
+    }
+
+    // Top Handrail beam
+    const handrail = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.15, length), concreteMat);
+    handrail.position.set(x, 1.15, 0);
+    bridge.add(handrail);
+  });
+
+  return bridge;
+}
+
+// =========================================================================
+// >>> HOLOGRAPHIC DIRECTIONAL CHEVRON ARROWS (MATCHING REFERENCE IMAGE!)
+// =========================================================================
+export function buildDirectionalChevrons3D() {
+  const chevronGroup = new THREE.Group();
+
+  const arrowCount = 3;
+  const chevronSpacing = 1.1;
+
+  for (let i = 0; i < arrowCount; i++) {
+    // Create chevron shape
+    const shape = new THREE.Shape();
+    shape.moveTo(-0.4, 0.7);
+    shape.lineTo(0.2, 0);
+    shape.lineTo(-0.4, -0.7);
+    shape.lineTo(-0.05, -0.7);
+    shape.lineTo(0.55, 0);
+    shape.lineTo(-0.05, 0.7);
+    shape.closePath();
+
+    const extrudeSettings = { depth: 0.12, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.03, bevelThickness: 0.03 };
+    const chevronGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+
+    const chevronMat = new THREE.MeshStandardMaterial({
+      color: '#FFD700',
+      emissive: '#FF9800',
+      emissiveIntensity: 0.9,
+      roughness: 0.2,
+      metalness: 0.1
+    });
+
+    const arrow = new THREE.Mesh(chevronGeo, chevronMat);
+    arrow.position.set(i * chevronSpacing, 2.2, 0);
+    chevronGroup.add(arrow);
+  }
+
+  // Centering
+  chevronGroup.position.x = -((arrowCount - 1) * chevronSpacing) / 2;
+  return chevronGroup;
+}
+
+// =========================================================================
+// 🏁 CELEBRATORY FINISH LINE ARCH GANTRY (বিজয় সমাপ্তি ফটক)
+// =========================================================================
+export function buildFinishLine3D(roadWidth = 11.5) {
+  const finish = new THREE.Group();
+
+  const frameMat = new THREE.MeshStandardMaterial({ color: '#263238', metalness: 0.7, roughness: 0.3 });
+  const checkeredCanvas = document.createElement('canvas');
+  checkeredCanvas.width = 256;
+  checkeredCanvas.height = 64;
+  const ctx = checkeredCanvas.getContext('2d');
+  const sq = 32;
+  for (let x = 0; x < 256; x += sq) {
+    for (let y = 0; y < 64; y += sq) {
+      ctx.fillStyle = ((x / sq + y / sq) % 2 === 0) ? '#FFFFFF' : '#111111';
+      ctx.fillRect(x, y, sq, sq);
+    }
+  }
+  const checkeredTex = new THREE.CanvasTexture(checkeredCanvas);
+  checkeredTex.wrapS = THREE.RepeatWrapping;
+  checkeredTex.wrapT = THREE.RepeatWrapping;
+  checkeredTex.repeat.set(3, 1);
+  const checkeredMat = new THREE.MeshBasicMaterial({ map: checkeredTex });
+
+  // Left & Right Truss Towers
+  const towerGeo = new THREE.BoxGeometry(0.65, 8.5, 0.65);
+  const towerL = new THREE.Mesh(towerGeo, frameMat);
+  towerL.position.set(-roadWidth / 2 - 0.8, 4.25, 0);
+  const towerR = towerL.clone();
+  towerR.position.x = roadWidth / 2 + 0.8;
+  finish.add(towerL, towerR);
+
+  // Overhead Banner Beam
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(roadWidth + 2.5, 1.8, 0.65), checkeredMat);
+  beam.position.set(0, 7.5, 0);
+  finish.add(beam);
+
+  // Large Glowing "FINISH" Sign in Center
+  const signCanvas = document.createElement('canvas');
+  signCanvas.width = 512;
+  signCanvas.height = 128;
+  const sCtx = signCanvas.getContext('2d');
+  sCtx.fillStyle = '#FFD700';
+  sCtx.fillRect(0, 0, 512, 128);
+  sCtx.fillStyle = '#0E7C3A';
+  sCtx.font = 'bold 64px "Hind Siliguri", sans-serif';
+  sCtx.textAlign = 'center';
+  sCtx.fillText('সমাপ্তি • FINISH 🏁', 256, 85);
+
+  const signTex = new THREE.CanvasTexture(signCanvas);
+  const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(6.2, 1.5), new THREE.MeshBasicMaterial({ map: signTex }));
+  signMesh.position.set(0, 7.5, 0.35);
+  finish.add(signMesh);
+
+  return finish;
+}
+
+// =========================================================================
+// 🌴 REALISTIC BANGLADESHI COCONUT TREE (নারকেল গাছ)
+// =========================================================================
+export function buildVillageCoconutTree3D() {
+  const tree = new THREE.Group();
+
+  const trunkMat = new THREE.MeshStandardMaterial({
+    color: '#6D5B4B',
+    roughness: 0.95,
+    metalness: 0.05
+  });
+  const frondMat = new THREE.MeshStandardMaterial({
+    color: '#2E7D32',
+    roughness: 0.65,
+    side: THREE.DoubleSide
+  });
+  const coconutMat = new THREE.MeshStandardMaterial({
+    color: '#795548',
+    roughness: 0.8
+  });
+
+  // Tall Curved Segmented Trunk (Height ~11m)
+  const segments = 10;
+  let currY = 0;
+  let currX = 0;
+  let currZ = 0;
+  const curveAngleX = (Math.random() - 0.5) * 0.06;
+  const curveAngleZ = (Math.random() - 0.5) * 0.06;
+
+  for (let i = 0; i < segments; i++) {
+    const h = 1.1;
+    const rBottom = 0.32 - i * 0.015;
+    const rTop = 0.30 - i * 0.015;
+    const segGeo = new THREE.CylinderGeometry(rTop, rBottom, h, 8);
+    const seg = new THREE.Mesh(segGeo, trunkMat);
+    seg.position.set(currX, currY + h / 2, currZ);
+    seg.rotation.x = curveAngleX * (i * 0.5);
+    seg.rotation.z = curveAngleZ * (i * 0.5);
+    seg.castShadow = true;
+    tree.add(seg);
+
+    currY += h * 0.96;
+    currX += Math.sin(curveAngleZ * (i * 0.5)) * h;
+    currZ -= Math.sin(curveAngleX * (i * 0.5)) * h;
+  }
+
+  // Crown Position at top of trunk
+  const crownGroup = new THREE.Group();
+  crownGroup.position.set(currX, currY, currZ);
+
+  // Coconut Clusters under the fronds
+  for (let c = 0; c < 6; c++) {
+    const nut = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), coconutMat);
+    const angle = (c / 6) * Math.PI * 2;
+    nut.position.set(Math.cos(angle) * 0.35, -0.15, Math.sin(angle) * 0.35);
+    crownGroup.add(nut);
+  }
+
+  // Drooping Tropical Palm Fronds (12 fronds spread in crown)
+  const frondCount = 12;
+  for (let f = 0; f < frondCount; f++) {
+    const angle = (f / frondCount) * Math.PI * 2;
+    const frond = new THREE.Group();
+    frond.rotation.y = angle;
+
+    // Curved frond spine with arched planes
+    const frondGeo = new THREE.PlaneGeometry(1.0, 4.2, 3, 6);
+    // Arch the leaf downwards
+    const pos = frondGeo.attributes.position;
+    for (let p = 0; p < pos.count; p++) {
+      const y = pos.getY(p);
+      pos.setZ(p, -Math.pow((y + 2.1) / 4.2, 2) * 1.4);
+    }
+    frondGeo.computeVertexNormals();
+
+    const frondMesh = new THREE.Mesh(frondGeo, frondMat);
+    frondMesh.rotation.x = Math.PI * 0.32;
+    frondMesh.position.set(0, 0.4, 1.8);
+    frondMesh.castShadow = true;
+    frond.add(frondMesh);
+
+    crownGroup.add(frond);
+  }
+
+  tree.add(crownGroup);
+  return tree;
+}
+
 
 
